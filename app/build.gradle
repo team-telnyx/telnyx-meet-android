@@ -1,0 +1,156 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+    id 'androidx.navigation.safeargs'
+}
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion 31
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.telnyx.meet"
+        minSdkVersion 23
+        targetSdkVersion 31
+        versionCode 1
+        versionName "1.0"
+
+        multiDexEnabled true
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "java.util.concurrent.atomic.AtomicBoolean", "IS_APP_TESTING", "new java.util.concurrent.atomic.AtomicBoolean(false)"
+
+    }
+
+    buildTypes {
+        release {
+            testCoverageEnabled true
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            jniDebuggable true
+        }
+        debug {
+            testCoverageEnabled true
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            debuggable true
+            jniDebuggable true
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+        }
+        unitTests.includeAndroidResources = true
+        unitTests.returnDefaultValues = true
+    }
+    packagingOptions {
+        exclude "META-INF/DEPENDENCIES"
+        exclude "**/attach_hotspot_windows.dll"
+        exclude "META-INF/licenses/**"
+        exclude "META-INF/AL2.0"
+        exclude "META-INF/LGPL2.1"
+        exclude "META-INF/LICENSE.md"
+        exclude "META-INF/LICENSE-notice.md"
+        exclude 'META-INF/telnyx_video_debug.kotlin_module'
+    }
+}
+
+dependencies {
+
+    // SDK:
+    implementation 'com.github.team-telnyx:telnyx-video-android:v0.0.1-beta'
+
+    implementation 'commons-codec:commons-codec:1.13'
+
+    implementation deps.webrtc
+
+    //leak canary
+    //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
+
+    //BugSnag:
+    implementation deps.bugsnag
+
+    implementation deps.kotlin.stdlib
+    implementation deps.androidx_core
+    implementation deps.androidx_fragment
+    implementation deps.appcompat
+    implementation deps.material
+    implementation deps.constraint_layout
+    implementation deps.swipeToRefresh
+
+    implementation deps.gson
+    implementation deps.retrofit.runtime
+    implementation deps.retrofit.gson
+
+    implementation deps.coroutines.core
+    implementation deps.coroutines.android
+
+    implementation deps.okhttp
+    implementation deps.interceptor
+
+    implementation deps.navigationFragment
+    implementation deps.navigationUi
+
+    implementation deps.camera2
+    implementation deps.cameraLifecycle
+    implementation deps.cameraxView
+
+    implementation deps.hilt.android
+    implementation 'com.google.android.material:material:1.4.0'
+    kapt deps.hilt.compiler
+
+
+    testImplementation deps.ktor.core
+    testImplementation deps.ktor.client
+
+    // Timber
+    implementation deps.timber
+
+    //permissions
+    implementation deps.dexter
+
+    //Unit Testing
+    testImplementation deps.testing.junit
+    testImplementation deps.testing.mockitoCore
+    testImplementation deps.testing.mockitoInline
+    testImplementation deps.testing.mockitoKotlin
+    testImplementation deps.testing.junitPlatformRunner
+    testImplementation deps.testing.commonsCodec
+    testImplementation deps.testing.coreTesting
+    testImplementation deps.testing.mockk_agent
+    testImplementation deps.testingAcceptance.jupiter
+    testRuntimeOnly deps.testingAcceptance.jupiterEngine
+    testImplementation deps.testingAcceptance.jupiterParams
+
+    //Instrumentation Testing
+    androidTestImplementation deps.testingAcceptance.testEspressoContribRecycler
+    androidTestImplementation deps.testingAcceptance.testRunner
+    androidTestImplementation deps.testingAcceptance.testRules
+    androidTestImplementation deps.testingAcceptance.testExt
+    androidTestImplementation deps.testingAcceptance.webMockServer
+    androidTestImplementation deps.testingAcceptance.testCore
+    androidTestImplementation deps.testingAcceptance.coreKtx
+    androidTestImplementation deps.testingAcceptance.espresso_core
+    androidTestImplementation deps.testingAcceptance.espresso_intent
+    androidTestImplementation deps.testingAcceptance.mockk
+    androidTestImplementation deps.testingAcceptance.jupiter
+    implementation "androidx.core:core-ktx:+"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+}
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}

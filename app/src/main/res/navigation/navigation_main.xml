@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/navigation_main"
+    app:startDestination="@id/joinRoomFragment">
+
+    <fragment
+        android:id="@+id/joinRoomFragment"
+        android:name="com.telnyx.meet.ui.JoinRoomFragment"
+        android:label="JoinRoomFragment">
+
+        <action
+            android:id="@+id/joinRoomToRoomCreateFragment"
+            app:destination="@id/roomCreateFragment" />
+        <action
+            android:id="@+id/joinRoomToRoomListFragment"
+            app:destination="@id/roomListFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/roomListFragment"
+        android:name="com.telnyx.meet.ui.RoomListFragment"
+        android:label="RoomListFragment">
+        <action
+            android:id="@+id/roomListToRoomCreate"
+            app:destination="@id/roomCreateFragment" />
+        <argument
+            android:name="participantName"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/roomCreateFragment"
+        android:name="com.telnyx.meet.ui.RoomCreateFragment"
+        android:label="RoomCreateFragment">
+        <argument
+            android:name="roomId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="roomName"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
+            android:name="participantName"
+            app:argType="string" />
+        <action
+            android:id="@+id/roomCreateToRoom"
+            app:destination="@id/roomFragment" />
+        <action
+            android:id="@+id/roomCreateToRoom_to_joinRoomFragment"
+            app:destination="@id/joinRoomFragment"
+            app:launchSingleTop="true"
+            app:popUpToInclusive="true"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/roomFragment"
+        android:name="com.telnyx.meet.ui.RoomFragment"
+        android:label="RoomFragment">
+        <argument
+            android:name="roomId"
+            app:argType="string" />
+        <argument
+            android:name="roomName"
+            app:argType="string" />
+        <argument
+            android:name="refreshToken"
+            app:argType="string" />
+        <argument
+            android:name="refreshTime"
+            app:argType="integer" />
+        <action
+            android:id="@+id/action_roomFragment_to_roomListFragment"
+            app:destination="@id/roomListFragment"
+            app:launchSingleTop="true"
+            app:popUpToInclusive="true"/>
+        <action
+            android:id="@+id/action_roomFragment_to_roomParticipantsFragment"
+            app:destination="@id/roomParticipantsFragment"
+            app:launchSingleTop="true"
+            app:popUpToInclusive="true"/>
+        <action
+            android:id="@+id/roomFragmentToRoomChatFragment"
+            app:destination="@id/roomChatFragment" />
+        <action
+            android:id="@+id/roomFragmentToJoinRoomFragment"
+            app:destination="@id/joinRoomFragment"
+            app:launchSingleTop="true"
+            app:popUpToInclusive="true"/>
+        <action
+            android:id="@+id/roomFragmentToSharingFullScreenFragment"
+            app:destination="@id/sharingFullScreenFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/roomParticipantsFragment"
+        android:name="com.telnyx.meet.ui.ParticipantsFragment"
+        android:label="RoomFragment">
+        <action
+            android:id="@+id/action_roomParticipantsFragment_to_roomFragment"
+            app:destination="@id/roomFragment"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/roomChatFragment"
+        android:name="com.telnyx.meet.ui.RoomChatFragment"
+        android:label="RoomChatFragment" />
+    <fragment
+        android:id="@+id/sharingFullScreenFragment"
+        android:name="com.telnyx.meet.ui.SharingFullScreenFragment"
+        android:label="SharingFullScreenFragment" />
+
+</navigation>

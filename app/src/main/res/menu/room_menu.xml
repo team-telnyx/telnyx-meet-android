@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_camera"
+        android:icon="@drawable/ic_camera_white"
+        android:title="@string/toggle_camera"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_mic"
+        android:icon="@drawable/ic_mic_white"
+        android:title="@string/toggle_mic"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_chat"
+        android:icon="@drawable/ic_chat"
+        android:title="@string/open_chat"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_flip_camera"
+        android:icon="@drawable/ic_flip_camera"
+        android:title="@string/flip_camera"
+        app:showAsAction="collapseActionView" />
+    <item
+        android:id="@+id/action_mic_source"
+        android:icon="@drawable/ic_speaker"
+        android:title="@string/mic_source"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_share_screen"
+        android:icon="@drawable/ic_screen_share"
+        android:title="@string/share_screen"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_main_view"
+        android:icon="@drawable/ic_main_view"
+        android:title="@string/speaking_view"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_view_participants"
+        android:icon="@drawable/ic_people"
+        android:title="@string/view_participants"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/action_report_issue"
+        android:icon="@drawable/ic_bug_report"
+        android:title="@string/report_issue"
+        app:showAsAction="collapseActionView" />
+</menu>

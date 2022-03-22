@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ####################################
+                Button
+       ###################################### -->
+    <style name="button">
+        <item name="android:paddingStart">@dimen/button_padding_start_end</item>
+        <item name="android:paddingEnd">@dimen/button_padding_start_end</item>
+        <item name="android:backgroundTint">@drawable/button</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">@dimen/font_button</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0.08</item>
+    </style>
+
+    <style name="buttonPrimary" parent="button">
+        <item name="android:backgroundTint">#31b886</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="buttonSecondary" parent="button">
+        <item name="android:backgroundTint">#3498db</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="MyDarkToolbarStyle" parent="Theme.AppCompat.Light">
+        <item name="android:colorBackground">@color/white</item>
+        <item name="android:itemBackground">@color/white</item>
+    </style>
+
+    <!-- ####################################
+            Splash Screen
+    ###################################### -->
+    <style name="SplashScreenTheme" parent = "Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_screen_background</item>
+    </style>
+
+    <style name="MyActionBar" parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:titleTextStyle">@style/TitleBarTextColor</item>
+        <item name="android:background">@color/white</item>
+    </style>
+
+    <style name="TitleBarTextColor" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="AppTheme.ActionBarTheme" parent="@style/ThemeOverlay.AppCompat.ActionBar">
+        <!-- THIS is where you can color the arrow and the overflow button! -->
+        <item name="colorControlNormal">@color/white</item> <!-- sets the color for the back arrow -->
+        <item name="actionOverflowButtonStyle">@style/actionOverflowButtonStyle</item> <!-- sets the style for the overflow button -->
+        <item name="android:titleTextColor">@android:color/white</item>
+        <item name="android:subtitleTextColor">@android:color/white</item>
+        <item name="android:actionBarStyle">@style/MyActionBar</item>
+        <item name="android:textColorPrimary">@color/white</item>
+    </style>
+
+    <!-- This style is where you define the tint color of your overflow menu button -->
+    <style name="actionOverflowButtonStyle" parent="@style/Widget.AppCompat.ActionButton.Overflow">
+        <item name="android:tint">@color/white</item>
+    </style>
+
+    <style name="ThemeOverlay.Actionbar" parent="ThemeOverlay.MaterialComponents.ActionBar.Surface" >
+        <item name="android:textColorPrimary">@color/white</item>
+    </style>
+</resources>

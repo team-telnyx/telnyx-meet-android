@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Telnyx Android Video SDK</string>
+    <string name="room_name_hint">Enter a Room name</string>
+    <string name="room_name_label">Room Name:</string>
+    <string name="room_id_label">Room ID:</string>
+    <string name="room_token_label">Room TOKEN:</string>
+    <string name="create_room_btn">CREATE</string>
+    <string name="empty_or_not_unique_error">You should provide a unique name for your room</string>
+    <string name="video">Video</string>
+    <string name="dummy_android_participant_name">Android Participant</string>
+    <string name="provide_participant_name_error">You have to provide a participant name</string>
+    <string name="audio">Audio</string>
+    <string name="share">share</string>
+    <string name="switch_direction">switch</string>
+    <string name="device">Device</string>
+    <string name="toggle_camera">Toggle camera</string>
+    <string name="toggle_mic">Toggle mic</string>
+    <string name="flip_camera">Flip camera</string>
+    <string name="mic_source">Mic source</string>
+    <string name="speaking_view">Speaking view</string>
+    <string name="share_screen">Share screen</string>
+    <string name="view_participants">View participants</string>
+    <string name="participant_name">Participant Name</string>
+    <string name="open_chat">Open Chat</string>
+    <string name="chat_send">SEND</string>
+    <string name="video_stats_title">VIDEO STATS</string>
+    <string name="audio_stats_title">AUDIO STATS</string>
+    <string name="join_room_explainer_text">Enter the room UUID and choose a name for yourself</string>
+    <string name="dummy_room_uuid">Room UUID</string>
+    <string name="join_room_button_text">Join Room</string>
+    <string name="see_available_rooms_text">See Available Rooms</string>
+    <string name="report_issue">Report issue</string>
+</resources>

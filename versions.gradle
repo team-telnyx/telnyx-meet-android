@@ -1,0 +1,159 @@
+ext.deps = [:]
+
+def versions = [:]
+versions.android_gradle_plugin = '4.2.0'
+versions.archComponents_version = '2.1.0'
+versions.google_play_services = "4.3.5"
+versions.kotlin = "1.5.10"
+versions.androidx_core = "1.3.2"
+versions.androidx_appcompat = "1.2.0"
+versions.androidx_fragment = "1.3.2"
+versions.material = "1.2.1"
+versions.androidx_constraint_layout = "2.0.4"
+versions.webrtc = "1.0.32006"
+versions.retrofit = "2.9.0"
+versions.gson = "2.8.6"
+versions.coroutines = "1.4.2"
+versions.websocket = "1.5.1"
+versions.okhttp = "4.9.0"
+versions.timber = "4.7.1"
+versions.dexter = "6.2.2"
+versions.googleservices = "4.3.4"
+versions.volley = "1.1.1"
+versions.firebasebom = "26.3.0"
+versions.hilt = "2.38.1"
+versions.dagger = "2.16"
+versions.legacySupportV4 = "1.0.0"
+versions.navigation = "2.2.0"
+versions.navigationSafeArgs = "2.3.5"
+versions.swipeToRefresh = "1.1.0"
+versions.moshiKotlin = "1.12.0"
+versions.moshiAdapters = "1.8.0"
+versions.cameraX = "1.0.1"
+versions.cameraxView = "1.0.0-alpha27"
+
+
+//Unit Testing
+versions.junit = '4.13.2'
+versions.mockito = '4.1.0'
+versions.mockito_kotlin = '3.2.0'
+versions.junit_platform = '1.0.2'
+versions.common_codec_version = '1.12'
+versions.core_testing = '2.1.0'
+versions.coroutines_test = '1.5.0'
+versions.mockk = "1.12.1"
+versions.ktor = "1.6.0"
+
+//Acceptance Testing
+versions.androidXTest = '1.3.0'
+versions.espresso = '3.4.0'
+versions.testExt = '1.1.1'
+versions.fragmentTesting = '1.1.1'
+versions.espressoContrib = '3.0.2'
+versions.espressoContribRecycler = '3.1.0'
+versions.webMockServer = '4.2.1'
+versions.mockk = '1.10.4'
+versions.jupiter = "5.8.2"
+versions.roboelectric = "4.5.1"
+versions.bugsnag = "5.+"
+
+ext.versions = versions
+
+def deps = [:]
+deps.google_play_services = "com.google.gms:google-services:$versions.google_play_services"
+deps.android_gradle_plugin = "com.android.tools.build:gradle:$versions.android_gradle_plugin"
+deps.androidx_core = "androidx.core:core-ktx:$versions.androidx_core"
+deps.androidx_fragment = "androidx.fragment:fragment-ktx:$versions.androidx_fragment"
+deps.appcompat = "androidx.appcompat:appcompat:$versions.androidx_appcompat"
+deps.material = "com.google.android.material:material:$versions.material"
+deps.constraint_layout = "androidx.constraintlayout:constraintlayout:$versions.androidx_constraint_layout"
+deps.volley = "com.android.volley:volley:$versions.volley"
+deps.webrtc = "org.webrtc:google-webrtc:$versions.webrtc"
+deps.gson = "com.google.code.gson:gson:$versions.gson"
+deps.websocket = "org.java-websocket:Java-WebSocket:$versions.websocket"
+deps.okhttp = "com.squareup.okhttp3:okhttp:$versions.okhttp"
+deps.interceptor = "com.squareup.okhttp3:logging-interceptor:$versions.okhttp"
+deps.timber = "com.jakewharton.timber:timber:$versions.timber"
+deps.dexter = "com.karumi:dexter:$versions.dexter"
+deps.firebasebom = "com.google.firebase:firebase-bom:$versions.firebasebom"
+deps.firebase_analytics = "com.google.firebase:firebase-analytics-ktx"
+deps.firebase_messaging = "com.google.firebase:firebase-messaging-ktx"
+deps.lifecycle_Compiler = "androidx.lifecycle:lifecycle-compiler:$versions.archComponents_version"
+deps.legacySupportV4 = "androidx.legacy:legacy-support-v4:$versions.legacySupportV4"
+deps.navigationFragment = "androidx.navigation:navigation-fragment-ktx:$versions.navigation"
+deps.navigationUi = "androidx.navigation:navigation-ui-ktx:$versions.navigation"
+deps.navigationSafeArgs = "androidx.navigation:navigation-safe-args-gradle-plugin:$versions.navigationSafeArgs"
+deps.swipeToRefresh= "androidx.swiperefreshlayout:swiperefreshlayout:$versions.swipeToRefresh"
+deps.moshiKotlin = "com.squareup.moshi:moshi-kotlin:$versions.moshiKotlin"
+deps.moshiAdapters = "com.squareup.moshi:moshi-adapters:$versions.moshiAdapters"
+deps.bugsnag = "com.bugsnag:bugsnag-android:$versions.bugsnag"
+deps.camera2 = "androidx.camera:camera-camera2:$versions.cameraX"
+deps.cameraLifecycle = "androidx.camera:camera-lifecycle:$versions.cameraX"
+deps.cameraxView = "androidx.camera:camera-view:$versions.cameraxView"
+
+def kotlin = [:]
+kotlin.plugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$versions.kotlin"
+kotlin.stdlib = "org.jetbrains.kotlin:kotlin-stdlib:$versions.kotlin"
+deps.kotlin = kotlin
+
+def retrofit = [:]
+retrofit.runtime = "com.squareup.retrofit2:retrofit:$versions.retrofit"
+retrofit.gson = "com.squareup.retrofit2:converter-gson:$versions.retrofit"
+deps.retrofit = retrofit
+
+def coroutines = [:]
+coroutines.core = "org.jetbrains.kotlinx:kotlinx-coroutines-core:$versions.coroutines"
+coroutines.android = "org.jetbrains.kotlinx:kotlinx-coroutines-android:$versions.coroutines"
+deps.coroutines = coroutines
+
+def hilt = [:]
+hilt.plugin = "com.google.dagger:hilt-android-gradle-plugin:$versions.hilt"
+hilt.android = "com.google.dagger:hilt-android:$versions.hilt"
+hilt.compiler = "com.google.dagger:hilt-android-compiler:$versions.hilt"
+deps.hilt = hilt
+
+def ktor = [:]
+ktor.core = "io.ktor:ktor-server-core:$versions.ktor"
+ktor.client = "io.ktor:ktor-client-cio:$versions.ktor"
+deps.ktor = ktor
+
+def testing = [:]
+testing.junit = "junit:junit:$versions.junit"
+testing.mockitoCore = "org.mockito:mockito-core:$versions.mockito"
+testing.mockitoInline = "org.mockito:mockito-inline:$versions.mockito"
+testing.mockitoKotlin = "org.mockito.kotlin:mockito-kotlin:$versions.mockito_kotlin"
+testing.junitPlatformRunner = "org.junit.platform:junit-platform-runner:$versions.junit_platform"
+testing.commonsCodec = "commons-codec:commons-codec:$versions.common_codec_version"
+testing.coreTesting = "androidx.arch.core:core-testing:$versions.core_testing"
+testing.coroutinesTest = "org.jetbrains.kotlinx:kotlinx-coroutines-test:$versions.coroutines_test"
+testing.roboelectric = "org.robolectric:robolectric:$versions.roboelectric"
+testing.mockk = "io.mockk:mockk:$versions.mockk"
+testing.mockk_agent = "io.mockk:mockk-agent-jvm:$versions.mockk"
+deps.testing = testing
+
+def testingAcceptance = [:]
+testingAcceptance.testEspressoContrib = "com.android.support.test.espresso:espresso-contrib:$versions.espressoContrib"
+testingAcceptance.testEspressoContribRecycler = "androidx.test.espresso:espresso-contrib:$versions.espressoContribRecycler"
+testingAcceptance.testRunner = "androidx.test:runner:$versions.androidXTest"
+testingAcceptance.testRules = "androidx.test:rules:$versions.androidXTest"
+testingAcceptance.testExt = "androidx.test.ext:junit:$versions.testExt"
+testingAcceptance.webMockServer = "com.squareup.okhttp3:mockwebserver:$versions.webMockServer"
+testingAcceptance.testCore = "androidx.test:core:$versions.androidXTest"
+testingAcceptance.coreKtx = "androidx.test:core-ktx:$versions.androidXTest"
+testingAcceptance.espresso_core = "androidx.test.espresso:espresso-core:$versions.espresso"
+testingAcceptance.espresso_intent = "androidx.test.espresso:espresso-intents:$versions.espresso"
+testingAcceptance.mockk = "io.mockk:mockk-android:$versions.mockk"
+testingAcceptance.jupiter = "org.junit.jupiter:junit-jupiter-api:$versions.jupiter"
+testingAcceptance.jupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$versions.jupiter"
+testingAcceptance.jupiterParams = "org.junit.jupiter:junit-jupiter-params:$versions.jupiter"
+
+deps.testingAcceptance = testingAcceptance
+
+def dagger = [:]
+dagger.android = "com.google.dagger:dagger-android:$versions.dagger"
+dagger.androidSupport = "com.google.dagger:dagger-android-support:$versions.dagger"
+dagger.compiler = "com.google.dagger:dagger-compiler:$versions.dagger"
+dagger.androidProcessor = "com.google.dagger:dagger-android-processor:$versions.dagger"
+deps.dagger = dagger
+
+ext.deps = deps
