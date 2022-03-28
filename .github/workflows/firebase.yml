@@ -12,7 +12,6 @@ jobs:
   # 1 Generate APKs so that we can install on Firebase Test Lab devices
   apk:
     name: Generate APK
-    needs: unit_tests
     runs-on: ubuntu-18.04
 
     steps:
