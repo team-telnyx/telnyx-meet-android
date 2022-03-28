@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - WEBRTC-1619
       - 'releases/*'
 
 jobs:
