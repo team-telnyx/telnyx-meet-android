@@ -1,4 +1,4 @@
-name: Unit Test and Firebase Test Lab
+name: Firebase Test Lab
 
 on:
   push:
