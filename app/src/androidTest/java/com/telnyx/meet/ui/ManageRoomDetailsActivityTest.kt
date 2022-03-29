@@ -111,6 +111,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).waitUntilVisible(15000).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
@@ -140,6 +141,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
@@ -219,6 +221,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
@@ -251,6 +254,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
@@ -287,6 +291,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
@@ -323,6 +328,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
@@ -363,6 +369,7 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
             onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(25000).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(

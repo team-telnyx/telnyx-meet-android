@@ -24,12 +24,15 @@ import com.telnyx.meet.data.model.request.RefreshTokenRequest
 import com.telnyx.meet.data.model.response.*
 import com.telnyx.meet.ui.models.MessageUI
 import com.telnyx.meet.ui.utilities.getCurrentTimeHHmm
+import com.telnyx.meet.ui.utilities.randomInt
 import com.telnyx.video.sdk.Event
 import com.telnyx.video.sdk.Room
 import com.telnyx.video.sdk.webSocket.model.ui.*
 import com.telnyx.video.sdk.model.AudioDevice
 import com.telnyx.video.sdk.utilities.PublishConfigHelper
 import com.telnyx.video.sdk.utilities.State
+import com.telnyx.video.sdk.webSocket.model.send.ExternalData
+import com.telnyx.video.sdk.webSocket.model.ui.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.webrtc.RTCStatsReport
 import org.webrtc.SurfaceViewRenderer
@@ -63,7 +66,6 @@ class RoomsViewModel @Inject constructor(
     val permissionRequest = MutableLiveData<Boolean>()
     var micInitialState: MediaOnStart = MediaOnStart.DISABLED
     var cameraInitialState: MediaOnStart = MediaOnStart.DISABLED
-    var shouldAcceptFirstSharingInfo: Boolean = false
 
     private val errorMutable: MutableLiveData<Event<CreateRoomErrorResponse>> =
         MutableLiveData<Event<CreateRoomErrorResponse>>()
@@ -128,15 +130,12 @@ class RoomsViewModel @Inject constructor(
     fun getSpeakingParticipant(): MutableLiveData<Pair<Participant, String?>> =
         room.getParticipantTalking()
 
-    fun getParticipantStreamChanged(): MutableLiveData<Participant> =
+    fun getParticipantStreamChanged(): MutableLiveData<Event<Participant>> =
         room.getParticipantStreamChanged()
-
-    fun getParticipantSharingChanged(): MutableLiveData<Event<Participant>> =
-        room.getParticipantSharingChanged()
 
     fun getLastRetrievedPage(): Int = mLastRetrievedPage
 
-    fun createTokenForRoom(roomId: String) {
+    fun createTokenForRoom(roomId: String, participantName: String) {
         loading.postValue(true)
         roomService.createClientToken(roomId, CreateTokenRequest())
             .enqueue(object : Callback<CreateTokenResponse> {
@@ -154,6 +153,7 @@ class RoomsViewModel @Inject constructor(
                                 context = context,
                                 roomId = UUID.fromString(roomId),
                                 roomToken = tokenInfo.token,
+                                externalData = ExternalData(randomInt(7), participantName),
                                 enableMessages = true
                             )
                         }
@@ -297,12 +297,11 @@ class RoomsViewModel @Inject constructor(
         room.addStream(publishConfigHelper)
     }
 
-    fun unpublish(key: String) {
-        room.removeStream(key)
+    fun updateStream(publishConfigHelper: PublishConfigHelper) {
+        room.updateStream(publishConfigHelper)
     }
 
-    fun connectToRoom(mParticipantName: String) {
-        room.setClientName(mParticipantName)
+    fun connectToRoom() {
         room.connect()
     }
 
@@ -367,9 +366,9 @@ class RoomsViewModel @Inject constructor(
     fun setParticipantSurface(
         participantId: String,
         participantSurface: SurfaceViewRenderer,
-        isPresentationSurface: Boolean
+        streamKey: String
     ) {
-        room.setParticipantSurface(participantId, participantSurface, isPresentationSurface)
+        room.setParticipantSurface(participantId, participantSurface, streamKey)
     }
 
     fun saveChatHistory(messages: MutableList<MessageUI>?) {
@@ -398,12 +397,12 @@ class RoomsViewModel @Inject constructor(
         messageHistory?.add(messageForHistory)
     }
 
-    fun getRemoteVideoStats(participantId: String, isPresentation: Boolean) {
-        room.getRemoteVideoStats(participantId, isPresentation)
+    fun getRemoteVideoStats(participantId: String, streamKey: String) {
+        room.getRemoteVideoStats(participantId, streamKey)
     }
 
-    fun getSelfVideoStats() {
-        room.getSelfVideoStats()
+    fun getSelfVideoStats(streamKey: String) {
+        room.getSelfVideoStats(streamKey)
     }
 
     fun getAudioBridgeStats() {
@@ -416,15 +415,14 @@ class RoomsViewModel @Inject constructor(
 
     fun subscribe(
         participantId: String,
-        isPresentation: Boolean,
-        key: String,
+        streamKey: String,
         streamConfig: StreamConfig
     ) {
-        room.addSubscription(participantId, isPresentation, key, streamConfig)
+        room.addSubscription(participantId, streamKey, streamConfig)
     }
 
-    fun unsubscribe(participantId: String, isPresentation: Boolean, key: String) {
-        room.removeSubscription(participantId, key, isPresentation)
+    fun unsubscribe(participantId: String, streamKey: String) {
+        room.removeSubscription(participantId, streamKey)
     }
 
     fun clearChatHistory() {
