@@ -52,13 +52,13 @@ class ParticipantsAdapter : RecyclerView.Adapter<ParticipantsAdapter.Participant
                 itemView.isSpeakingIcon_id.visibility = View.INVISIBLE
             }
 
-            if (model.audioEnabled == StreamStatus.ENABLED) {
+            if (model.streams.find { it.streamKey == "self" }?.audioEnabled == StreamStatus.ENABLED) {
                 itemView.isMutedIcon_id.setImageResource(R.drawable.ic_mic)
             } else {
                 itemView.isMutedIcon_id.setImageResource(R.drawable.ic_mic_off)
             }
 
-            if (model.videoEnabled == StreamStatus.ENABLED) {
+            if (model.streams.find { it.streamKey == "self" }?.videoEnabled == StreamStatus.ENABLED) {
                 itemView.isVideoIcon_id.setImageResource(R.drawable.ic_camera)
             } else {
                 itemView.isVideoIcon_id.setImageResource(R.drawable.ic_camera_off)

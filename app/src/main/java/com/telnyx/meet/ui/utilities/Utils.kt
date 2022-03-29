@@ -73,3 +73,12 @@ fun Activity.showSystemUI() {
 fun Activity.isFullScreenEnabled(): Boolean {
     return window.attributes.flags and WindowManager.LayoutParams.FLAG_FULLSCREEN != 0
 }
+
+fun randomInt(length: Int): Int {
+    val characters = "0123456789"
+    val stringBuilder = StringBuilder(length)
+    repeat(length) {
+        stringBuilder.append(characters[Random().nextInt(characters.length)])
+    }
+    return Integer.parseInt(stringBuilder.toString())
+}

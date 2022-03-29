@@ -70,7 +70,7 @@ android {
 dependencies {
 
     // SDK:
-    implementation 'com.github.team-telnyx:telnyx-video-android:v0.0.1-beta'
+    implementation 'com.github.team-telnyx:telnyx-video-android:v0.0.2'
 
     implementation 'commons-codec:commons-codec:1.13'
 
