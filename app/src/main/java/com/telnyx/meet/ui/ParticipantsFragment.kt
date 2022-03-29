@@ -55,8 +55,8 @@ class ParticipantsFragment : Fragment() {
         }
 
         roomsViewModel.getParticipantStreamChanged()
-            .observe(viewLifecycleOwner) { participantChangedStreams ->
-                participantChangedStreams?.let {
+            .observe(viewLifecycleOwner) { participantChangedStreamsEvent ->
+                participantChangedStreamsEvent.getContentIfNotHandled()?.let {
                     participantsAdapter.notifyDataSetChanged()
                 }
             }
