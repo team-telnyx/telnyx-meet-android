@@ -27,12 +27,12 @@ import com.telnyx.meet.ui.adapters.ParticipantTileListener
 import com.telnyx.meet.ui.models.*
 import com.telnyx.meet.ui.utilities.calculateTokenExpireTime
 import com.telnyx.meet.ui.utilities.getCurrentTimeHHmm
+import com.telnyx.video.sdk.utilities.CameraDirection
+import com.telnyx.video.sdk.utilities.PublishConfigHelper
 import com.telnyx.video.sdk.webSocket.model.receive.PluginDataBody
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamConfig
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
-import com.telnyx.video.sdk.utilities.CameraDirection
-import com.telnyx.video.sdk.utilities.PublishConfigHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.room_fragment.*
 import kotlinx.coroutines.*
@@ -51,7 +51,8 @@ class RoomFragment @Inject constructor(
 
         private const val VIDEO_TRACK_KEY = "000"
         private const val AUDIO_TRACK_KEY = "001"
-        private const val MEDIA_STREAM_HELPER_KEY = "003"
+        private const val SELF_STREAM_KEY = "self"
+        private const val SELF_STREAM_ID = "7734d3e4-04d9-2ae8-7db2-6bb761579ac2"
 
         private enum class ViewMode {
             FULL_PARTICIPANTS,
@@ -92,7 +93,7 @@ class RoomFragment @Inject constructor(
     private var mBound: Boolean = false
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    private lateinit var publishConfigHelper: PublishConfigHelper
+    private var publishConfigHelper: PublishConfigHelper? = null
 
     override val layoutId: Int = R.layout.room_fragment
 
@@ -169,11 +170,11 @@ class RoomFragment @Inject constructor(
         return when (item.itemId) {
             R.id.action_camera -> {
                 toggledVideo = if (!toggledVideo) {
-                    item.icon = context?.getDrawable(R.drawable.ic_camera_off_white)
+                    item.icon = context?.getDrawable(R.drawable.ic_camera_white)
                     startCameraCapture()
                     true
                 } else {
-                    item.icon = context?.getDrawable(R.drawable.ic_camera_white)
+                    item.icon = context?.getDrawable(R.drawable.ic_camera_off_white)
                     stopCameraCapture()
                     false
                 }
@@ -182,11 +183,11 @@ class RoomFragment @Inject constructor(
 
             R.id.action_mic -> {
                 toggledAudio = if (!toggledAudio) {
-                    item.icon = context?.getDrawable(R.drawable.ic_mic_off_white)
+                    item.icon = context?.getDrawable(R.drawable.ic_mic_white)
                     startAudioCapture()
                     true
                 } else {
-                    item.icon = context?.getDrawable(R.drawable.ic_mic_white)
+                    item.icon = context?.getDrawable(R.drawable.ic_mic_off_white)
                     stopAudioCapture()
                     false
                 }
@@ -201,7 +202,7 @@ class RoomFragment @Inject constructor(
             }
 
             R.id.action_flip_camera -> {
-                publishConfigHelper.changeCameraDirection()
+                publishConfigHelper?.changeCameraDirection()
                 true
             }
 
@@ -243,40 +244,63 @@ class RoomFragment @Inject constructor(
     }
 
     private fun stopAudioCapture() {
-        roomsViewModel.unpublish(AUDIO_TRACK_KEY)
+        publishConfigHelper?.let {
+            it.disposeAudio()
+            roomsViewModel.updateStream(it)
+        }
     }
 
     private fun startAudioCapture() {
-        publishConfigHelper =
-            PublishConfigHelper(
+        val shouldPublish = publishConfigHelper == null
+        if (shouldPublish) {
+            publishConfigHelper = PublishConfigHelper(
                 requireContext(),
                 CameraDirection.FRONT,
-                MEDIA_STREAM_HELPER_KEY
+                SELF_STREAM_KEY,
+                SELF_STREAM_ID
             )
-        publishConfigHelper.createAudioTrack(true, AUDIO_TRACK_KEY)
-        roomsViewModel.publish(publishConfigHelper)
+        }
+        publishConfigHelper?.let {
+            it.createAudioTrack(true, AUDIO_TRACK_KEY)
+            if (shouldPublish) {
+                roomsViewModel.publish(it)
+            } else {
+                roomsViewModel.updateStream(it)
+            }
+        }
     }
 
     private fun stopCameraCapture() {
-        publishConfigHelper.stopCapture()
-        selfSurface?.let { publishConfigHelper.releaseSurfaceView(it) }
-        roomsViewModel.unpublish(VIDEO_TRACK_KEY)
+        publishConfigHelper?.let {
+            it.stopCapture()
+            roomsViewModel.updateStream(it)
+            selfSurface?.let { surface -> it.releaseSurfaceView(surface) }
+        }
     }
 
     private fun startCameraCapture() {
-        publishConfigHelper =
-            PublishConfigHelper(
+        val shouldPublish = publishConfigHelper == null
+        if (shouldPublish) {
+            publishConfigHelper = PublishConfigHelper(
                 requireContext(),
                 CameraDirection.FRONT,
-                MEDIA_STREAM_HELPER_KEY
+                SELF_STREAM_KEY,
+                SELF_STREAM_ID
             )
-        selfSurface?.let { publishConfigHelper.setSurfaceView(it) }
-        publishConfigHelper.createVideoTrack(
-            CapturerConstraints.WIDTH.value,
-            CapturerConstraints.HEIGHT.value,
-            CapturerConstraints.FPS.value, true, VIDEO_TRACK_KEY
-        )
-        roomsViewModel.publish(publishConfigHelper)
+        }
+        selfSurface?.let { publishConfigHelper?.setSurfaceView(it) }
+        publishConfigHelper?.let {
+            it.createVideoTrack(
+                CapturerConstraints.WIDTH.value,
+                CapturerConstraints.HEIGHT.value,
+                CapturerConstraints.FPS.value, true, VIDEO_TRACK_KEY
+            )
+            if (shouldPublish) {
+                roomsViewModel.publish(it)
+            } else {
+                roomsViewModel.updateStream(it)
+            }
+        }
     }
 
     private fun showIssueDialog() {
@@ -351,7 +375,7 @@ class RoomFragment @Inject constructor(
                     isSelf = false,
                     isPresentation = true
                 )
-                startRemoteVideoStatsJob(participantId, true)
+                startRemoteVideoStatsJob(participantId, "presentation")
             }
         }
 
@@ -445,6 +469,10 @@ class RoomFragment @Inject constructor(
                     selfParticipantId = participantList[0].participantId
                     selfParticipantHandleId = participantList[0].id
                 }
+                participantList.find { it.streams.find { stream -> stream.streamKey == "presentation" } != null }
+                    ?.let {
+                        processParticipantSharing(it)
+                    }
             }
         }
 
@@ -464,6 +492,11 @@ class RoomFragment @Inject constructor(
                 Timber.tag("RoomFragment")
                     .d("Participant Leaving :: $participantLeavingId")
                 participantLeavingId?.let { (id, reason) ->
+                    if (mSharingParticipant?.id == id) {
+                        // Stopped sharing
+                        adaptUIToFullParticipants()
+                        unsuscribeSharingParticipant()
+                    }
                     participantAdapter.removeParticipant(id)
                     Timber.tag("RoomFragment")
                         .d("getLeavingParticipantId :: $participantLeavingId")
@@ -477,17 +510,25 @@ class RoomFragment @Inject constructor(
             }
 
         roomsViewModel.getParticipantStreamChanged()
-            .observe(viewLifecycleOwner) { participantChangedStreams ->
-                Timber.tag("RoomFragment")
-                    .d("Participant $participantChangedStreams stream changed")
-                participantAdapter.notifyDataSetChanged()
+            .observe(viewLifecycleOwner) { participantChangedStreamsEvent ->
+                participantChangedStreamsEvent.getContentIfNotHandled()
+                    ?.let { participantChangedStreams ->
+                        Timber.tag("RoomFragment")
+                            .d("Participant $participantChangedStreams stream changed")
+                        participantAdapter.notifyDataSetChanged()
+                        if ((mSharingParticipant?.participantId == participantChangedStreams.participantId)) {
+                            // Check if still sharing
+                            if (participantChangedStreams.streams.find { it.streamKey == "presentation" }?.videoEnabled != StreamStatus.ENABLED) {
+                                // Stopped sharing
+                                adaptUIToFullParticipants()
+                                unsuscribeSharingParticipant()
+                            }
+                        }
+                        if (participantChangedStreams.streams.find { it.streamKey == "presentation" } != null) {
+                            processParticipantSharing(participantChangedStreams)
+                        }
+                    }
             }
-
-        if (roomsViewModel.shouldAcceptFirstSharingInfo) {
-            setSharingPeekObserver()
-        } else {
-            setSharingEventObserver()
-        }
 
         roomsViewModel.getSpeakingParticipant().observe(viewLifecycleOwner) { speakingParticipant ->
             speakingParticipant?.let {
@@ -541,53 +582,27 @@ class RoomFragment @Inject constructor(
             }
     }
 
-    private fun setSharingEventObserver() {
-        roomsViewModel.getParticipantSharingChanged()
-            .observe(viewLifecycleOwner) { participantSharingEvent ->
-                participantSharingEvent.getContentIfNotHandled()?.let { participantSharing ->
-                    processParticipantSharing(participantSharing)
-                }
-            }
-    }
-
-    private fun setSharingPeekObserver() {
-        roomsViewModel.getParticipantSharingChanged()
-            .observe(viewLifecycleOwner) { participantSharingEvent ->
-                participantSharingEvent.peekContent().let { participantSharing ->
-                    processParticipantSharing(participantSharing)
-                    removeSharingPeekObserver()
-                    setSharingEventObserver()
-                }
-            }
-    }
-
-    private fun removeSharingPeekObserver() {
-        roomsViewModel.getParticipantSharingChanged().removeObservers(viewLifecycleOwner)
+    private fun unsuscribeSharingParticipant() {
+        mSharingParticipant?.let {
+            roomsViewModel.unsubscribe(it.participantId, "presentation")
+        }
+        mSharingParticipant = null
     }
 
     private fun processParticipantSharing(participantSharing: Participant) {
-        when (participantSharing.sharingEnabled) {
-            StreamStatus.UNKNOWN -> {
-                Timber.tag("RoomFragment")
-                    .d("Participant $participantSharing not sharing")
-                if (participantSharing.participantId == mSharingParticipant?.participantId) {
-                    adaptUIToFullParticipants()
-                    mSharingParticipant = null
-                }
+        val presentationStream = participantSharing.streams.find { it.streamKey == "presentation" }
+        if (presentationStream?.videoEnabled == StreamStatus.ENABLED) {
+            setSharingParticipant(participantSharing)
+            if (currentViewMode == ViewMode.FULL_PARTICIPANTS) {
+                adaptUIToMainView()
             }
-            else -> {
-                setSharingParticipant(participantSharing)
-                if (currentViewMode == ViewMode.FULL_PARTICIPANTS) {
-                    adaptUIToMainView()
-                }
-                participantSharing.sharingTrack?.addSink(mainSurface)
-                participantSharing.sharingTrack?.setEnabled(true)
-                roomsViewModel.setParticipantSurface(
-                    participantSharing.participantId,
-                    mainSurface,
-                    true
-                )
-            }
+            presentationStream.videoTrack?.addSink(mainSurface)
+            presentationStream.videoTrack?.setEnabled(true)
+            roomsViewModel.setParticipantSurface(
+                participantSharing.participantId,
+                mainSurface,
+                "presentation"
+            )
         }
     }
 
@@ -614,13 +629,13 @@ class RoomFragment @Inject constructor(
             }
         mStatsjob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
-                roomsViewModel.getSelfVideoStats()
+                roomsViewModel.getSelfVideoStats(SELF_STREAM_KEY)
                 delay(1500)
             }
         }
     }
 
-    private fun startRemoteVideoStatsJob(participantId: String, isPresentation: Boolean) {
+    private fun startRemoteVideoStatsJob(participantId: String, streamKey: String) {
         mStatsjob?.cancel()
         roomsViewModel.getRemoteVideoStatsObservable()
             .observe(viewLifecycleOwner) { videoStatsPair ->
@@ -643,7 +658,7 @@ class RoomFragment @Inject constructor(
             }
         mStatsjob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
-                roomsViewModel.getRemoteVideoStats(participantId, isPresentation)
+                roomsViewModel.getRemoteVideoStats(participantId, streamKey)
                 delay(1500)
             }
         }
@@ -756,7 +771,12 @@ class RoomFragment @Inject constructor(
                 dialogButtonToggleStats.text = getString(R.string.video)
                 dialogButtonToggleStats.setOnClickListener {
                     mStatsParticipant?.let {
-                        startRemoteVideoStatsJob(it.participantId, it.isPresentation)
+                        val streamKey = if (it.isPresentation) {
+                            "presentation"
+                        } else {
+                            "self"
+                        }
+                        startRemoteVideoStatsJob(it.participantId, streamKey)
                     }
                 }
             }
@@ -780,8 +800,7 @@ class RoomFragment @Inject constructor(
     private fun setSharingParticipant(sharingParticipant: Participant) {
         mSharingParticipant = sharingParticipant
         roomsViewModel.subscribe(
-            sharingParticipant.participantId,
-            true, "SharingSubscription",
+            sharingParticipant.participantId, "presentation",
             StreamConfig(audioEnabled = false, videoEnabled = true)
         )
     }
@@ -793,13 +812,13 @@ class RoomFragment @Inject constructor(
             isSelf = model.isSelf,
             isPresentation = false
         )
-        if (model.videoEnabled != StreamStatus.ENABLED) {
+        if (model.streams.find { it.streamKey == "self" }?.videoEnabled != StreamStatus.ENABLED) {
             startAudioStatsJob()
         } else {
             if (model.isSelf) {
                 startSelfVideoStatsJob()
             } else {
-                startRemoteVideoStatsJob(model.participantId, false)
+                startRemoteVideoStatsJob(model.participantId, "self")
             }
         }
     }
@@ -813,19 +832,20 @@ class RoomFragment @Inject constructor(
      */
     override fun notifyTileSurfaceId(
         participantSurface: SurfaceViewRenderer,
-        participantId: String
+        participantId: String,
+        streamKey: String
     ) {
         Timber.tag("RoomFragment").d("notifySurfaceId: $participantSurface $participantId")
-        roomsViewModel.setParticipantSurface(participantId, participantSurface, false)
+        roomsViewModel.setParticipantSurface(participantId, participantSurface, streamKey)
     }
 
-    override fun unsubscribeTileToStream(participantId: String) {
-        roomsViewModel.unsubscribe(participantId, false, "VideoSubscription")
+    override fun unsubscribeTileToStream(participantId: String, streamKey: String) {
+        roomsViewModel.unsubscribe(participantId, streamKey)
     }
 
-    override fun subscribeTileToStream(participantId: String) {
+    override fun subscribeTileToStream(participantId: String, streamKey: String) {
         roomsViewModel.subscribe(
-            participantId, false, "VideoSubscription",
+            participantId, streamKey,
             StreamConfig(audioEnabled = true, videoEnabled = true)
         )
     }

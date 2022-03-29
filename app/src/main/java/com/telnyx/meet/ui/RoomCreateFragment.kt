@@ -75,7 +75,7 @@ class RoomCreateFragment @Inject constructor(
                 mRoomName = it.unique_name
                 tv_room_id.text = mRoomId
                 tv_room_name.text = mRoomName
-                roomsViewModel.createTokenForRoom(it.id)
+                roomsViewModel.createTokenForRoom(it.id, mParticipantName)
             }
         }
 
@@ -88,7 +88,7 @@ class RoomCreateFragment @Inject constructor(
                     tv_room_token.text = tokenInfo.token
                     mRoomId?.let {
                         setRoomSpecificObservers()
-                        roomsViewModel.connectToRoom(mParticipantName)
+                        roomsViewModel.connectToRoom()
                     }
                 }
             }
@@ -156,7 +156,6 @@ class RoomCreateFragment @Inject constructor(
                 mRefreshToken!!,
                 mRefreshTimer!!
             )
-            roomsViewModel.shouldAcceptFirstSharingInfo = false
             navigator.navController.navigate(action)
         }
     }
@@ -169,7 +168,7 @@ class RoomCreateFragment @Inject constructor(
                 tv_room_name.text = mRoomName
                 room_name_et.setText(mRoomName)
             }
-            roomsViewModel.createTokenForRoom(roomId)
+            roomsViewModel.createTokenForRoom(roomId, mParticipantName)
             buttonCreateRoom.isEnabled = true
             room_name_et.addTextChangedListener {
                 buttonCreateRoom.isEnabled = true

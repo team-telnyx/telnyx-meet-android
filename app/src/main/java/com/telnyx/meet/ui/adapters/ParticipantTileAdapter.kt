@@ -14,9 +14,14 @@ import timber.log.Timber
 interface ParticipantTileListener {
     fun onItemClicked(model: Participant)
     fun notifyTileSelfSurfaceId(participantSurface: SurfaceViewRenderer)
-    fun notifyTileSurfaceId(participantSurface: SurfaceViewRenderer, participantId: String)
-    fun unsubscribeTileToStream(participantId: String)
-    fun subscribeTileToStream(participantId: String)
+    fun notifyTileSurfaceId(
+        participantSurface: SurfaceViewRenderer,
+        participantId: String,
+        streamKey: String
+    )
+
+    fun unsubscribeTileToStream(participantId: String, streamKey: String)
+    fun subscribeTileToStream(participantId: String, streamKey: String)
     fun notifyExtraParticipants(extraParticipants: Int)
 }
 
@@ -46,7 +51,7 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
 
     private fun pauseRemainingParticipants(participantsNotVisible: List<Participant>) {
         participantsNotVisible.forEach {
-            participantTileListener.unsubscribeTileToStream(it.participantId)
+            participantTileListener.unsubscribeTileToStream(it.participantId, "self")
         }
     }
 
@@ -59,8 +64,9 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
         participants.find { it.participantId == participant.participantId }?.let {
             it.id = participant.id
             it.externalUsername = participant.externalUsername
-            it.publishingId = participant.publishingId
-            it.sharingId = participant.sharingId
+            it.streams = participant.streams
+            it.audioBridgeId = participant.audioBridgeId
+            it.canReceiveMessages = participant.canReceiveMessages
         } ?: run {
             Timber.tag("ParticipantTileAdapter")
                 .d("Adding participant: ${participant.participantId}")
@@ -115,7 +121,7 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
         fun bind(model: Participant, participantTileListener: ParticipantTileListener) {
             Timber.tag("ParticipantTileAdapter").d("onBind() isSelf: ${model.isSelf}")
             itemView.participant_tile_id.text =
-                model.participantId.substring(31)
+                model.participantId.substring(0, 5)
             itemView.participant_tile_name.text = model.externalUsername.toString()
 
             Timber.tag("ParticipantTileAdapter")
@@ -136,29 +142,30 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
             if (model.isSelf) participantTileListener.notifyTileSelfSurfaceId(itemView.participant_tile_surface)
 
             // TODO review this logic: will only subscribe to audio, if video is enabled as well
-            when (model.videoEnabled) {
+            when (model.streams.find { it.streamKey == "self" }?.videoEnabled) {
                 StreamStatus.ENABLED -> {
                     Timber.tag("ParticipantTileAdapter").d("onBind() STARTED")
-                    participantTileListener.subscribeTileToStream(model.participantId)
+                    participantTileListener.subscribeTileToStream(model.participantId, "self")
                     itemView.participant_tile_surface.visibility = View.VISIBLE
                     itemView.participant_tile_place_holder.visibility = View.GONE
-                    model.videoTrack?.addSink(itemView.participant_tile_surface)
-                    model.videoTrack?.setEnabled(true)
+                    model.streams.find { it.streamKey == "self" }?.videoTrack?.addSink(itemView.participant_tile_surface)
+                    model.streams.find { it.streamKey == "self" }?.videoTrack?.setEnabled(true)
                     participantTileListener.notifyTileSurfaceId(
                         itemView.participant_tile_surface,
-                        model.participantId
+                        model.participantId,
+                        "self"
                     )
                 }
                 else -> {
                     Timber.tag("ParticipantTileAdapter").d("onBind() PAUSED")
-                    itemView.participant_tile_surface.visibility = View.GONE
+                    participantTileListener.unsubscribeTileToStream(model.participantId, "self")
+                    itemView.participant_tile_surface.visibility = View.INVISIBLE
                     itemView.participant_tile_place_holder.visibility = View.VISIBLE
-                    participantTileListener.unsubscribeTileToStream(model.participantId)
                 }
             }
-
-            when (model.audioEnabled) {
 /*
+            when (model.streams.find { it.streamKey == "self" }?.audioEnabled) {
+            }
                 StreamStatus.ENABLED -> {
                     participantTileListener.subscribeTileToStream(model.participantId)
                 }
@@ -166,7 +173,6 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
                     Timber.tag("ParticipantTileAdapter").d("onBind() Do nothing")
                 }
 */
-            }
             itemView.setOnClickListener {
                 participantTileListener.onItemClicked(model)
             }

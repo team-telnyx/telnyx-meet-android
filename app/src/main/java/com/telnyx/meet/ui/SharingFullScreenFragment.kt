@@ -18,6 +18,7 @@ import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.sharing_full_screen.*
 import kotlinx.coroutines.*
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -50,7 +51,6 @@ class SharingFullScreenFragment @Inject constructor(
         super.onCreate(savedInstanceState)
         requireActivity().onBackPressedDispatcher.addCallback(this) {
             activity?.showSystemUI()
-            roomsViewModel.shouldAcceptFirstSharingInfo = true
             navigator.navigateBack()
         }
     }
@@ -63,35 +63,53 @@ class SharingFullScreenFragment @Inject constructor(
     }
 
     private fun setObservers() {
-        roomsViewModel.getParticipantSharingChanged()
-            .observe(viewLifecycleOwner) { participantSharingEvent ->
-                participantSharingEvent.peekContent().let { participantSharing ->
-                    when (participantSharing.sharingEnabled) {
-                        StreamStatus.ENABLED -> {
-                            participantSharing.sharingTrack?.addSink(mainFullScreenSurface)
-                            participantSharing.sharingTrack?.setEnabled(true)
+        roomsViewModel.getParticipants().observe(viewLifecycleOwner) { participants ->
+            participants.let { participantList ->
+                participantList.find { it.streams.find { stream -> stream.streamKey == "presentation" } != null }
+                    ?.let { participant ->
+                        val sharingTrack =
+                            participant.streams.find { it.streamKey == "presentation" }
+
+                        if (sharingTrack?.videoEnabled == StreamStatus.ENABLED) {
+                            participantSharing = participant
+                            sharingTrack.videoTrack?.addSink(mainFullScreenSurface)
+                            sharingTrack.videoTrack?.setEnabled(true)
                             roomsViewModel.setParticipantSurface(
-                                participantSharing.participantId,
+                                participant.participantId,
                                 mainFullScreenSurface,
-                                true
+                                "presentation"
                             )
                         }
-                        else -> {
-                            roomsViewModel.shouldAcceptFirstSharingInfo = true
-                            navigator.navigateBack()
-                        }
+                    }
+            }
+        }
+
+        roomsViewModel.getLeavingParticipantId()
+            .observe(viewLifecycleOwner) { participantLeavingId ->
+                Timber.tag("RoomFragment")
+                    .d("Participant Leaving :: $participantLeavingId")
+                participantLeavingId?.let { (id, reason) ->
+                    if (participantSharing?.id == id) {
+                        // Stopped sharing
+                        navigator.navigateBack()
                     }
                 }
             }
 
-        roomsViewModel.getLeavingParticipantId()
-            .observe(viewLifecycleOwner) { participantLeavingId ->
-                participantLeavingId?.let {
-                    if (participantSharing?.sharingId == it.first) {
-                        roomsViewModel.shouldAcceptFirstSharingInfo = true
-                        navigator.navigateBack()
+        roomsViewModel.getParticipantStreamChanged()
+            .observe(viewLifecycleOwner) { participantChangedStreamsEvent ->
+                participantChangedStreamsEvent.getContentIfNotHandled()
+                    ?.let { participantChangedStreams ->
+                        Timber.tag("RoomFragment")
+                            .d("Participant $participantChangedStreams stream changed")
+                        if ((participantSharing?.participantId == participantChangedStreams.participantId)) {
+                            // Check if still sharing
+                            if (participantChangedStreams.streams.find { it.streamKey == "presentation" }?.videoEnabled != StreamStatus.ENABLED) {
+                                // Stopped sharing
+                                navigator.navigateBack()
+                            }
+                        }
                     }
-                }
             }
     }
 
