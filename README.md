@@ -1,9 +1,7 @@
 # Telnyx Meet Android App
 This application demonstrates multi-party voice and video built with [Telnyx Android Video SDK](https://github.com/team-telnyx/telnyx-video-android).
 
-<p align="left">
-    <img align="center" src="https://user-images.githubusercontent.com/83662606/160112867-eb86f24e-90dc-4b87-a145-f4c5f5b822d0.png" width="200" height="400" >
-</p>
+### ![screenshot](screenshots/multiple-devices-running-app.png)
 
 ## Features
 
