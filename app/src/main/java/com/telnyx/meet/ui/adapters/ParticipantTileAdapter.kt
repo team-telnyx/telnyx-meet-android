@@ -9,6 +9,7 @@ import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import kotlinx.android.synthetic.main.participant_tile_item.view.*
 import org.webrtc.SurfaceViewRenderer
+import org.webrtc.VideoTrack
 import timber.log.Timber
 
 interface ParticipantTileListener {
@@ -30,7 +31,21 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
 
     private val participants = mutableListOf<Participant>()
     private val participantsInAdapter = mutableListOf<Participant>()
+    private val viewHolderMap: MutableMap<ParticipantTileHolder, VideoTrack?> = HashMap()
+
     private var maxParticipants: Int = 8
+
+    override fun onViewDetachedFromWindow(holder: ParticipantTileHolder) {
+        super.onViewDetachedFromWindow(holder)
+        viewHolderMap[holder]?.let {
+            Timber.tag("ParticipantTileAdapter").d(
+                "detach remove surface: video: $it surface ${holder.itemView.participant_tile_surface}"
+            )
+            it.removeSink(holder.itemView.participant_tile_surface)
+            holder.itemView.participant_tile_surface.release()
+            viewHolderMap.remove(holder)
+        }
+    }
 
     fun setData(data: List<Participant>) {
         participants.clear()
@@ -87,10 +102,10 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
         if (modified) calculateParticipants()
     }
 
-    fun adjustSpeakingParticipants(list: List<Participant>) {
+    /*fun adjustSpeakingParticipants(list: List<Participant>) {
         Timber.tag("ParticipantTileAdapter").d("Updating participants speaking: $list")
         notifyDataSetChanged()
-    }
+    }*/
 
     override fun getItemId(position: Int): Long {
         return participantsInAdapter[position].id
@@ -113,12 +128,17 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
     override fun getItemCount(): Int = participantsInAdapter.size
 
     override fun onBindViewHolder(holder: ParticipantTileHolder, position: Int) {
-        holder.bind(participantsInAdapter[position], participantTileListener)
+        holder.bind(participantsInAdapter[position], participantTileListener, viewHolderMap)
     }
 
     class ParticipantTileHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val holder = this
 
-        fun bind(model: Participant, participantTileListener: ParticipantTileListener) {
+        fun bind(
+            model: Participant,
+            participantTileListener: ParticipantTileListener,
+            viewHolderMap: MutableMap<ParticipantTileHolder, VideoTrack?>
+        ) {
             Timber.tag("ParticipantTileAdapter").d("onBind() isSelf: ${model.isSelf}")
             itemView.participant_tile_id.text =
                 model.participantId.substring(0, 5)
@@ -148,13 +168,21 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
                     participantTileListener.subscribeTileToStream(model.participantId, "self")
                     itemView.participant_tile_surface.visibility = View.VISIBLE
                     itemView.participant_tile_place_holder.visibility = View.GONE
-                    model.streams.find { it.streamKey == "self" }?.videoTrack?.addSink(itemView.participant_tile_surface)
-                    model.streams.find { it.streamKey == "self" }?.videoTrack?.setEnabled(true)
                     participantTileListener.notifyTileSurfaceId(
                         itemView.participant_tile_surface,
                         model.participantId,
                         "self"
                     )
+                    model.streams.find { it.streamKey == "self" }?.videoTrack?.let {
+                        if (viewHolderMap[holder] != it) {
+                            // Updates only if previous register differs from what we need
+                            viewHolderMap[holder]?.removeSink(holder.itemView.participant_tile_surface)
+                            holder.itemView.participant_tile_surface.release()
+                            viewHolderMap[holder] = it
+                            it.addSink(itemView.participant_tile_surface)
+                            it.setEnabled(true)
+                        }
+                    }
                 }
                 else -> {
                     Timber.tag("ParticipantTileAdapter").d("onBind() PAUSED")
