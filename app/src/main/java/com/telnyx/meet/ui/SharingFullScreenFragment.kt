@@ -17,7 +17,9 @@ import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.sharing_full_screen.*
+import kotlinx.android.synthetic.main.sharing_full_screen.view.*
 import kotlinx.coroutines.*
+import org.webrtc.SurfaceViewRenderer
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -27,6 +29,7 @@ class SharingFullScreenFragment @Inject constructor(
 ) : BaseFragment() {
 
     private var participantSharing: Participant? = null
+    private var fullScreenSurface: SurfaceViewRenderer? = null
     private var fullScreenEnforcerJob: Job? = null
 
     private var fragmentView: View? = null
@@ -50,6 +53,7 @@ class SharingFullScreenFragment @Inject constructor(
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requireActivity().onBackPressedDispatcher.addCallback(this) {
+            removeSharingSurface()
             activity?.showSystemUI()
             navigator.navigateBack()
         }
@@ -57,9 +61,16 @@ class SharingFullScreenFragment @Inject constructor(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        fullScreenSurface = view.mainFullScreenSurface
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         startFullScreenEnforcer()
         setObservers()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Timber.tag("SharingFullFragment")
+            .d("onResume surface: ${view?.mainFullScreenSurface.hashCode()}")
     }
 
     private fun setObservers() {
@@ -72,13 +83,16 @@ class SharingFullScreenFragment @Inject constructor(
 
                         if (sharingTrack?.videoEnabled == StreamStatus.ENABLED) {
                             participantSharing = participant
-                            sharingTrack.videoTrack?.addSink(mainFullScreenSurface)
-                            sharingTrack.videoTrack?.setEnabled(true)
+                            removeSharingSurface()
+                            Timber.tag("SharingFullFragment")
+                                .d("addingSurface surface: ${mainFullScreenSurface.hashCode()}")
                             roomsViewModel.setParticipantSurface(
                                 participant.participantId,
                                 mainFullScreenSurface,
                                 "presentation"
                             )
+                            sharingTrack.videoTrack?.addSink(mainFullScreenSurface)
+                            sharingTrack.videoTrack?.setEnabled(true)
                         }
                     }
             }
@@ -86,7 +100,7 @@ class SharingFullScreenFragment @Inject constructor(
 
         roomsViewModel.getLeavingParticipantId()
             .observe(viewLifecycleOwner) { participantLeavingId ->
-                Timber.tag("RoomFragment")
+                Timber.tag("SharingFullFragment")
                     .d("Participant Leaving :: $participantLeavingId")
                 participantLeavingId?.let { (id, reason) ->
                     if (participantSharing?.id == id) {
@@ -100,7 +114,7 @@ class SharingFullScreenFragment @Inject constructor(
             .observe(viewLifecycleOwner) { participantChangedStreamsEvent ->
                 participantChangedStreamsEvent.getContentIfNotHandled()
                     ?.let { participantChangedStreams ->
-                        Timber.tag("RoomFragment")
+                        Timber.tag("SharingFullFragment")
                             .d("Participant $participantChangedStreams stream changed")
                         if ((participantSharing?.participantId == participantChangedStreams.participantId)) {
                             // Check if still sharing
@@ -114,6 +128,7 @@ class SharingFullScreenFragment @Inject constructor(
     }
 
     private fun startFullScreenEnforcer() {
+        removeSharingSurface()
         fullScreenEnforcerJob = CoroutineScope(Dispatchers.Main).launch {
             while (isActive) {
                 delay(4000)
@@ -121,5 +136,23 @@ class SharingFullScreenFragment @Inject constructor(
                     activity?.hideSystemUI()
             }
         }
+    }
+
+    private fun removeSharingSurface() {
+        Timber.tag("SharingFullFragment").d("remove surface: ${fullScreenSurface?.hashCode()}")
+        participantSharing?.let { sharingParticipant ->
+            fullScreenSurface?.let { fullSurface ->
+                sharingParticipant.streams.find { it.streamKey == "presentation" }?.videoTrack?.removeSink(
+                    fullSurface
+                )
+                Timber.tag("SharingFullFragment").d("Full releasing")
+                fullSurface.release()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        removeSharingSurface()
     }
 }

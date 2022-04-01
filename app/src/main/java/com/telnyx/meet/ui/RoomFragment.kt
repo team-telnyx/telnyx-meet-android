@@ -38,6 +38,7 @@ import kotlinx.android.synthetic.main.room_fragment.*
 import kotlinx.coroutines.*
 import org.webrtc.SurfaceViewRenderer
 import timber.log.Timber
+import java.util.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -52,7 +53,6 @@ class RoomFragment @Inject constructor(
         private const val VIDEO_TRACK_KEY = "000"
         private const val AUDIO_TRACK_KEY = "001"
         private const val SELF_STREAM_KEY = "self"
-        private const val SELF_STREAM_ID = "7734d3e4-04d9-2ae8-7db2-6bb761579ac2"
 
         private enum class ViewMode {
             FULL_PARTICIPANTS,
@@ -68,6 +68,7 @@ class RoomFragment @Inject constructor(
         }
     }
 
+    private val SELF_STREAM_ID = UUID.randomUUID().toString()
     private var menu: Menu? = null
     private var selfSurface: SurfaceViewRenderer? = null
     private var mStatsDialog: BottomSheetDialog? = null
@@ -90,7 +91,6 @@ class RoomFragment @Inject constructor(
     private var speakerViewEnabled = false
     private var isFullShare = false
 
-    private var mBound: Boolean = false
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
     private var publishConfigHelper: PublishConfigHelper? = null
@@ -861,6 +861,10 @@ class RoomFragment @Inject constructor(
 
     override fun onDestroyView() {
         super.onDestroyView()
+        mSharingParticipant?.let {
+            it.streams.find { it.streamKey == "presentation" }?.videoTrack?.removeSink(mainSurface)
+            mainSurface.release()
+        }
         participantTileRecycler.adapter = null
     }
 }
