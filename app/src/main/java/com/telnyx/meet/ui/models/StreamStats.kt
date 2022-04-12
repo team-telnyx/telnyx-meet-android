@@ -2,7 +2,7 @@ package com.telnyx.meet.ui.models
 
 sealed class StreamStats
 
-data class SelfVideoStreamStats(
+data class LocalVideoStreamStats(
     val bytesSent: Int,
     val codecId: String,
     val frameHeight: Int,
@@ -28,7 +28,7 @@ data class RemoteVideoStreamStats(
     val totalInterFrameDelay: Double
 ) : StreamStats()
 
-data class AudioBridgeOutputStreamStats(
+data class LocalAudioStreamStats(
     val bytesSent: Int,
     val codecId: String,
     val headerBytesSent: Int,
@@ -37,7 +37,7 @@ data class AudioBridgeOutputStreamStats(
     val retransmittedPacketsSent: Int,
 ) : StreamStats()
 
-data class AudioBridgeInputStreamStats(
+data class RemoteAudioStreamStats(
     val audioLevel: Double,
     val bytesReceived: Int,
     val codecId: String,

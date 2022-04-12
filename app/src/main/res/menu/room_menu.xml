@@ -3,12 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_camera"
-        android:icon="@drawable/ic_camera_white"
+        android:icon="@drawable/ic_camera_off_white"
         android:title="@string/toggle_camera"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_mic"
-        android:icon="@drawable/ic_mic_white"
+        android:icon="@drawable/ic_mic_off_white"
         android:title="@string/toggle_mic"
         app:showAsAction="ifRoom" />
     <item
