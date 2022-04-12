@@ -34,6 +34,7 @@ import com.telnyx.video.sdk.utilities.State
 import com.telnyx.video.sdk.webSocket.model.send.ExternalData
 import com.telnyx.video.sdk.webSocket.model.ui.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import org.webrtc.RTCStatsCollectorCallback
 import org.webrtc.RTCStatsReport
 import org.webrtc.SurfaceViewRenderer
 import retrofit2.Call
@@ -427,5 +428,9 @@ class RoomsViewModel @Inject constructor(
 
     fun clearChatHistory() {
         messageHistory?.clear()
+    }
+
+    fun getWebRTCStatsForStream(participantId: String, streamKey: String, callback: RTCStatsCollectorCallback) {
+        room.getWebRTCStatsForStream(participantId, streamKey, callback)
     }
 }

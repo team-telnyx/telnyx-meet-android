@@ -36,6 +36,7 @@ import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.room_fragment.*
 import kotlinx.coroutines.*
+import org.webrtc.RTCStatsReport
 import org.webrtc.SurfaceViewRenderer
 import timber.log.Timber
 import java.util.*
@@ -52,7 +53,7 @@ class RoomFragment @Inject constructor(
 
         private const val VIDEO_TRACK_KEY = "000"
         private const val AUDIO_TRACK_KEY = "001"
-        private const val SELF_STREAM_KEY = "self"
+        const val SELF_STREAM_KEY = "self"
 
         private enum class ViewMode {
             FULL_PARTICIPANTS,
@@ -375,7 +376,7 @@ class RoomFragment @Inject constructor(
                     isSelf = false,
                     isPresentation = true
                 )
-                startRemoteVideoStatsJob(participantId, "presentation")
+                startStatsJob(participantId, "presentation", StatsSource.REMOTE_VIDEO)
             }
         }
 
@@ -606,118 +607,116 @@ class RoomFragment @Inject constructor(
         }
     }
 
-    private fun startSelfVideoStatsJob() {
+    private fun startStatsJob(
+        participantId: String,
+        streamKey: String,
+        statsSource: StatsSource
+    ) {
         mStatsjob?.cancel()
-        roomsViewModel.getSelfVideoStatsObservable()
-            .observe(viewLifecycleOwner) { videoStatsPair ->
-                videoStatsPair.getContentIfNotHandled()?.let { videoStats ->
-                    videoStats.statsMap.values.filter { it.type == "outbound-rtp" }
-                        .findLast { it.toString().contains("mediaType: \"video\"") }
-                        ?.let { rtcVideoStats ->
-                            val videoStreamStats =
-                                gson.fromJson(
-                                    rtcVideoStats.toString(),
-                                    SelfVideoStreamStats::class.java
-                                )
-                            videoStreamStats?.let {
-                                Timber.tag("RoomFragment")
-                                    .d("SelfParticipant video STATS: $it")
-                                showBottomDialog(it)
-                            }
-                        }
-                }
-            }
         mStatsjob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive) {
-                roomsViewModel.getSelfVideoStats(SELF_STREAM_KEY)
-                delay(1500)
+                getWebRTCStatsForStream(participantId, streamKey, statsSource)
+                delay(2000)
             }
         }
     }
 
-    private fun startRemoteVideoStatsJob(participantId: String, streamKey: String) {
-        mStatsjob?.cancel()
-        roomsViewModel.getRemoteVideoStatsObservable()
-            .observe(viewLifecycleOwner) { videoStatsPair ->
-                videoStatsPair.getContentIfNotHandled()?.let { (participantId, videoStats) ->
-                    videoStats.statsMap.values.filter { it.type == "inbound-rtp" }
-                        .findLast { it.toString().contains("mediaType: \"video\"") }
-                        ?.let { rtcVideoStats ->
-                            val videoStreamStats =
-                                gson.fromJson(
-                                    rtcVideoStats.toString(),
-                                    RemoteVideoStreamStats::class.java
-                                )
-                            videoStreamStats?.let {
-                                Timber.tag("RoomFragment")
-                                    .d("ParticipantID: $participantId video STATS: $it")
-                                showBottomDialog(it)
-                            }
-                        }
-                }
-            }
-        mStatsjob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive) {
-                roomsViewModel.getRemoteVideoStats(participantId, streamKey)
-                delay(1500)
-            }
-        }
-    }
-
-    private fun startAudioStatsJob() {
-        mStatsjob?.cancel()
-        roomsViewModel.getAudioBridgeStatsObservable()
-            .observe(viewLifecycleOwner) { videoStatsPair ->
-                videoStatsPair.getContentIfNotHandled()?.let { audioStats ->
-                    if (mStatsParticipant?.isSelf == true) {
-                        audioStats.statsMap.values.filter { it.type == "outbound-rtp" }
-                            .findLast { it.toString().contains("mediaType: \"audio\"") }
-                            ?.let { rtcStats ->
-                                val audioStreamStats =
-                                    gson.fromJson(
-                                        rtcStats.toString(),
-                                        AudioBridgeOutputStreamStats::class.java
-                                    )
-                                audioStreamStats?.let {
-                                    showBottomDialog(it)
-                                }
-                            }
-                    } else {
-                        audioStats.statsMap.values.filter { it.type == "inbound-rtp" }
-                            .findLast { it.toString().contains("mediaType: \"audio\"") }
-                            ?.let { rtcStats ->
-                                val audioStreamStats =
-                                    gson.fromJson(
-                                        rtcStats.toString(),
-                                        AudioBridgeInputStreamStats::class.java
-                                    )
-                                audioStreamStats?.let {
-                                    showBottomDialog(it)
-                                }
-                            }
+    private fun getWebRTCStatsForStream(
+        participantId: String,
+        streamKey: String,
+        statsSource: StatsSource
+    ) {
+        roomsViewModel.getWebRTCStatsForStream(participantId, streamKey) { statsReport ->
+            statsReport?.let { stats ->
+                when (statsSource) {
+                    StatsSource.REMOTE_VIDEO -> {
+                        parseRemoteVideoStats(stats)
+                    }
+                    StatsSource.REMOTE_AUDIO -> {
+                        parseRemoteAudioStats(stats)
+                    }
+                    StatsSource.LOCAL_VIDEO -> {
+                        parseLocalVideoStats(stats)
+                    }
+                    StatsSource.LOCAL_AUDIO -> {
+                        parseLocalAudioStats(stats)
                     }
                 }
             }
-        mStatsjob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive) {
-                roomsViewModel.getAudioBridgeStats()
-                delay(5000)
-            }
         }
     }
 
-    private fun showBottomDialog(streamStats: StreamStats) {
-        if (mStatsDialog == null) {
-            mStatsDialog = BottomSheetDialog(requireContext())
-            mStatsDialog?.setOnDismissListener {
-                mStatsjob?.cancel()
-                roomsViewModel.getRemoteVideoStatsObservable().removeObservers(viewLifecycleOwner)
-                roomsViewModel.getSelfVideoStatsObservable().removeObservers(viewLifecycleOwner)
-                roomsViewModel.getAudioBridgeStatsObservable().removeObservers(viewLifecycleOwner)
+    private fun parseLocalAudioStats(stats: RTCStatsReport) {
+        stats.statsMap.values.filter { it.type == "outbound-rtp" }
+            .findLast { it.toString().contains("mediaType: \"audio\"") }
+            ?.let { rtcStats ->
+                val audioStreamStats =
+                    gson.fromJson(
+                        rtcStats.toString(),
+                        LocalAudioStreamStats::class.java
+                    )
+                audioStreamStats?.let {
+                    showBottomDialog(it)
+                }
             }
+    }
+
+    private fun parseLocalVideoStats(stats: RTCStatsReport) {
+        stats.statsMap.values.filter { it.type == "outbound-rtp" }
+            .findLast { it.toString().contains("mediaType: \"video\"") }
+            ?.let { rtcVideoStats ->
+                val videoStreamStats =
+                    gson.fromJson(
+                        rtcVideoStats.toString(),
+                        LocalVideoStreamStats::class.java
+                    )
+                videoStreamStats?.let {
+                    showBottomDialog(it)
+                }
+            }
+    }
+
+    private fun parseRemoteAudioStats(stats: RTCStatsReport) {
+        stats.statsMap.values.filter { it.type == "inbound-rtp" }
+            .findLast { it.toString().contains("mediaType: \"audio\"") }
+            ?.let { rtcStats ->
+                val audioStreamStats =
+                    gson.fromJson(
+                        rtcStats.toString(),
+                        RemoteAudioStreamStats::class.java
+                    )
+                audioStreamStats?.let {
+                    showBottomDialog(it)
+                }
+            }
+    }
+
+    private fun parseRemoteVideoStats(stats: RTCStatsReport) {
+        stats.statsMap.values.filter { it.type == "inbound-rtp" }
+            .findLast { it.toString().contains("mediaType: \"video\"") }
+            ?.let { rtcVideoStats ->
+                val videoStreamStats =
+                    gson.fromJson(
+                        rtcVideoStats.toString(),
+                        RemoteVideoStreamStats::class.java
+                    )
+                videoStreamStats?.let {
+                    showBottomDialog(it)
+                }
+            }
+    }
+
+    private fun showBottomDialog(streamStats: StreamStats) {
+        activity?.runOnUiThread {
+            if (mStatsDialog == null) {
+                mStatsDialog = BottomSheetDialog(requireContext())
+                mStatsDialog?.setOnDismissListener {
+                    mStatsjob?.cancel()
+                }
+            }
+            updateDialogInfo(streamStats)
+            if (mStatsDialog?.isShowing == false) mStatsDialog?.show()
         }
-        updateDialogInfo(streamStats)
-        if (mStatsDialog?.isShowing == false) mStatsDialog?.show()
     }
 
     private fun updateDialogInfo(streamStats: StreamStats) {
@@ -743,10 +742,16 @@ class RoomFragment @Inject constructor(
                 stringBuilder.append("totalInterFrameDelay: ${streamStats.totalInterFrameDelay}\n")
                 dialogButtonToggleStats.text = getString(R.string.audio)
                 dialogButtonToggleStats.setOnClickListener {
-                    startAudioStatsJob()
+                    mStatsParticipant?.let {
+                        startStatsJob(
+                            it.participantId,
+                            SELF_STREAM_KEY,
+                            StatsSource.REMOTE_AUDIO
+                        )
+                    }
                 }
             }
-            is SelfVideoStreamStats -> {
+            is LocalVideoStreamStats -> {
                 dialogTitleTextView.text = getString(R.string.video_stats_title)
                 stringBuilder.append("frameWidth: ${streamStats.frameWidth}\n")
                 stringBuilder.append("frameHeight: ${streamStats.frameHeight}\n")
@@ -756,10 +761,16 @@ class RoomFragment @Inject constructor(
                 stringBuilder.append("nackCount: ${streamStats.nackCount}\n")
                 dialogButtonToggleStats.text = getString(R.string.audio)
                 dialogButtonToggleStats.setOnClickListener {
-                    startAudioStatsJob()
+                    mStatsParticipant?.let {
+                        startStatsJob(
+                            it.participantId,
+                            SELF_STREAM_KEY,
+                            StatsSource.LOCAL_AUDIO
+                        )
+                    }
                 }
             }
-            is AudioBridgeInputStreamStats -> {
+            is RemoteAudioStreamStats -> {
                 dialogTitleTextView.text = getString(R.string.audio_stats_title)
                 stringBuilder.append("jitter: ${streamStats.jitter}\n")
                 stringBuilder.append("packetsLost: ${streamStats.packetsLost}\n")
@@ -771,16 +782,15 @@ class RoomFragment @Inject constructor(
                 dialogButtonToggleStats.text = getString(R.string.video)
                 dialogButtonToggleStats.setOnClickListener {
                     mStatsParticipant?.let {
-                        val streamKey = if (it.isPresentation) {
-                            "presentation"
-                        } else {
-                            "self"
-                        }
-                        startRemoteVideoStatsJob(it.participantId, streamKey)
+                        startStatsJob(
+                            it.participantId,
+                            SELF_STREAM_KEY,
+                            StatsSource.REMOTE_VIDEO
+                        )
                     }
                 }
             }
-            is AudioBridgeOutputStreamStats -> {
+            is LocalAudioStreamStats -> {
                 dialogTitleTextView.text = getString(R.string.audio_stats_title)
                 stringBuilder.append("packetsSent: ${streamStats.packetsSent}\n")
                 stringBuilder.append("bytesSent: ${streamStats.bytesSent}\n")
@@ -789,7 +799,13 @@ class RoomFragment @Inject constructor(
                 stringBuilder.append("headerBytesSent: ${streamStats.headerBytesSent}\n")
                 dialogButtonToggleStats.text = getString(R.string.video)
                 dialogButtonToggleStats.setOnClickListener {
-                    startSelfVideoStatsJob()
+                    mStatsParticipant?.let {
+                        startStatsJob(
+                            it.participantId,
+                            SELF_STREAM_KEY,
+                            StatsSource.LOCAL_VIDEO
+                        )
+                    }
                 }
             }
         }
@@ -812,13 +828,38 @@ class RoomFragment @Inject constructor(
             isSelf = model.isSelf,
             isPresentation = false
         )
-        if (model.streams.find { it.streamKey == "self" }?.videoEnabled != StreamStatus.ENABLED) {
-            startAudioStatsJob()
+
+        if (model.streams.find { it.streamKey == SELF_STREAM_KEY }?.videoEnabled != StreamStatus.ENABLED) {
+            if (model.isSelf) {
+                // Gel Local Audio Stats
+                startStatsJob(
+                    model.participantId,
+                    SELF_STREAM_KEY,
+                    StatsSource.LOCAL_AUDIO
+                )
+            } else {
+                // Get Remote Audio Stats
+                startStatsJob(
+                    model.participantId,
+                    SELF_STREAM_KEY,
+                    StatsSource.LOCAL_AUDIO
+                )
+            }
         } else {
             if (model.isSelf) {
-                startSelfVideoStatsJob()
+                // Get Local Video Stats
+                startStatsJob(
+                    model.participantId,
+                    SELF_STREAM_KEY,
+                    StatsSource.LOCAL_VIDEO
+                )
             } else {
-                startRemoteVideoStatsJob(model.participantId, "self")
+                // Get Remote Video Stats
+                startStatsJob(
+                    model.participantId,
+                    SELF_STREAM_KEY,
+                    StatsSource.REMOTE_VIDEO
+                )
             }
         }
     }

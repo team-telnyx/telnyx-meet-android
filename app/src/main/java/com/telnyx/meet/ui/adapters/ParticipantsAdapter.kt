@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.telnyx.meet.R
+import com.telnyx.meet.ui.RoomFragment
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import kotlinx.android.synthetic.main.participant_item.view.*
@@ -52,7 +53,7 @@ class ParticipantsAdapter : RecyclerView.Adapter<ParticipantsAdapter.Participant
                 itemView.isSpeakingIcon_id.visibility = View.INVISIBLE
             }
 
-            if (model.streams.find { it.streamKey == "self" }?.audioEnabled == StreamStatus.ENABLED) {
+            if (model.streams.find { it.streamKey == RoomFragment.RoomFragmentConstants.SELF_STREAM_KEY }?.audioEnabled == StreamStatus.ENABLED) {
                 itemView.isMutedIcon_id.setImageResource(R.drawable.ic_mic)
             } else {
                 itemView.isMutedIcon_id.setImageResource(R.drawable.ic_mic_off)
