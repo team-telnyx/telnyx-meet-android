@@ -1,3 +1,5 @@
+[![Qodana](https://github.com/team-telnyx/telnyx-meet-android/actions/workflows/code_quality.yml/badge.svg)](https://github.com/team-telnyx/telnyx-meet-android/actions/workflows/code_quality.yml)
+
 # Telnyx Meet Android App
 This application demonstrates multi-party voice and video built with [Telnyx Android Video SDK](https://github.com/team-telnyx/telnyx-video-android).
 
