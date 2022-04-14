@@ -1,0 +1,8 @@
+android-pixel-4:
+  type: instrumentation
+  app: app-debug.apk
+  test: app-debug-androidTest.apk
+  device:
+    - version: 28
+      locale: 'en'
+      orientation: portrait
