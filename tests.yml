@@ -1,8 +1,9 @@
-android-pixel-4:
+android-pixel-2:
   type: instrumentation
   app: app-debug.apk
   test: app-debug-androidTest.apk
   device:
-    - version: 28
+    - model: Pixel2
+      version: 29
       locale: 'en'
       orientation: portrait
