@@ -20,6 +20,7 @@
     <string name="speaking_view">Speaking view</string>
     <string name="share_screen">Share screen</string>
     <string name="view_participants">View participants</string>
+    <string name="network_quality">Network Quality</string>
     <string name="participant_name">Participant Name</string>
     <string name="open_chat">Open Chat</string>
     <string name="chat_send">SEND</string>
@@ -30,4 +31,6 @@
     <string name="join_room_button_text">Join Room</string>
     <string name="see_available_rooms_text">See Available Rooms</string>
     <string name="report_issue">Report issue</string>
+    <string name="blur_background">Blur Background</string>
+    <string name="virtual_background">Virtual Background</string>
 </resources>

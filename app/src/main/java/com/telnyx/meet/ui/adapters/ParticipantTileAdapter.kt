@@ -158,6 +158,12 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
                     itemView.isSpeakingIcon_id.visibility = View.INVISIBLE
                 }
             }
+            model.connectionQualityLevel?.let {
+                itemView.network_quality_icon.visibility = View.VISIBLE
+                itemView.network_quality_icon.text = it.icon
+            } ?: run {
+                itemView.network_quality_icon.visibility = View.GONE
+            }
 
             if (model.isSelf) participantTileListener.notifyTileSelfSurfaceId(itemView.participant_tile_surface)
 

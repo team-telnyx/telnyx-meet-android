@@ -129,7 +129,10 @@ class SharingFullScreenFragment @Inject constructor(
 
     private fun startFullScreenEnforcer() {
         removeSharingSurface()
-        fullScreenEnforcerJob = CoroutineScope(Dispatchers.Main).launch {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            Timber.tag("SharingFullFragment").d("CoroutineExceptionHandler: $exception")
+        }
+        fullScreenEnforcerJob = CoroutineScope(Dispatchers.Main).launch(handler) {
             while (isActive) {
                 delay(4000)
                 if (activity?.isFullScreenEnabled() == false)

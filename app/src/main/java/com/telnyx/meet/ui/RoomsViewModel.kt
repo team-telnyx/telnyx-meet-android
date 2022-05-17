@@ -35,7 +35,6 @@ import com.telnyx.video.sdk.webSocket.model.send.ExternalData
 import com.telnyx.video.sdk.webSocket.model.ui.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import org.webrtc.RTCStatsCollectorCallback
-import org.webrtc.RTCStatsReport
 import org.webrtc.SurfaceViewRenderer
 import retrofit2.Call
 import retrofit2.Callback
@@ -67,6 +66,8 @@ class RoomsViewModel @Inject constructor(
     val permissionRequest = MutableLiveData<Boolean>()
     var micInitialState: MediaOnStart = MediaOnStart.DISABLED
     var cameraInitialState: MediaOnStart = MediaOnStart.DISABLED
+    private var cameraCurrentState: MediaOnStart = MediaOnStart.DISABLED
+    private var micCurrentState: MediaOnStart = MediaOnStart.DISABLED
 
     private val errorMutable: MutableLiveData<Event<CreateRoomErrorResponse>> =
         MutableLiveData<Event<CreateRoomErrorResponse>>()
@@ -112,15 +113,6 @@ class RoomsViewModel @Inject constructor(
 
     fun getJoinedRoom(): MutableLiveData<Event<RoomUI>> =
         room.getJoinedRoomObservable()
-
-    fun getRemoteVideoStatsObservable(): MutableLiveData<Event<Pair<String, RTCStatsReport>>> =
-        room.getRemoteVideoStatsObservable()
-
-    fun getSelfVideoStatsObservable(): MutableLiveData<Event<RTCStatsReport>> =
-        room.getSelfVideoStatsObservable()
-
-    fun getAudioBridgeStatsObservable(): MutableLiveData<Event<RTCStatsReport>> =
-        room.getAudioBridgeStatsObservable()
 
     fun getJoinedParticipant(): MutableLiveData<Event<Participant>> =
         room.getJoinedParticipant()
@@ -245,7 +237,7 @@ class RoomsViewModel @Inject constructor(
                             mTotalPages = it.total_pages
                             mLastRetrievedPage = it.page_number
                         }
-                        response.body()?.roomDetails.let { it ->
+                        response.body()?.roomDetails.let {
                             roomsListRetrieved.postValue(it)
                         }
                     }
@@ -382,6 +374,10 @@ class RoomsViewModel @Inject constructor(
         room.sendTextRoomMessage(message)
     }
 
+    fun stopObserveRoomCreatedValue() {
+        roomCreated.postValue(null)
+    }
+
     fun createAdminMessage(adminMessageText: String) = MessageUI(
         date = getCurrentTimeHHmm(),
         sender = "ADMIN",
@@ -396,18 +392,6 @@ class RoomsViewModel @Inject constructor(
      */
     fun addMessageToHistory(messageForHistory: MessageUI) {
         messageHistory?.add(messageForHistory)
-    }
-
-    fun getRemoteVideoStats(participantId: String, streamKey: String) {
-        room.getRemoteVideoStats(participantId, streamKey)
-    }
-
-    fun getSelfVideoStats(streamKey: String) {
-        room.getSelfVideoStats(streamKey)
-    }
-
-    fun getAudioBridgeStats() {
-        room.getAudioBridgeStats()
     }
 
     fun getStateTextFile(): String? {
@@ -430,7 +414,35 @@ class RoomsViewModel @Inject constructor(
         messageHistory?.clear()
     }
 
-    fun getWebRTCStatsForStream(participantId: String, streamKey: String, callback: RTCStatsCollectorCallback) {
+    fun getWebRTCStatsForStream(
+        participantId: String,
+        streamKey: String,
+        callback: RTCStatsCollectorCallback
+    ) {
         room.getWebRTCStatsForStream(participantId, streamKey, callback)
+    }
+
+    fun enableNetworkMetricsReport(participantsList: List<String>) {
+        room.enableNetworkMetricsReport(participantsList)
+    }
+
+    fun disableNetworkMetricsReport(participantsList: List<String>) {
+        room.disableNetworkMetricsReport(participantsList)
+    }
+
+    fun setCameraState(media: MediaOnStart) {
+        cameraCurrentState = media
+    }
+
+    fun getCameraState(): MediaOnStart {
+        return cameraCurrentState
+    }
+
+    fun setMicState(media: MediaOnStart) {
+        micCurrentState = media
+    }
+
+    fun getMicState(): MediaOnStart {
+        return micCurrentState
     }
 }

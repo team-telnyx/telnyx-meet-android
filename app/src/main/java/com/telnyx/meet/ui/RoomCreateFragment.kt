@@ -167,6 +167,8 @@ class RoomCreateFragment @Inject constructor(
             mRoomName?.let { _ ->
                 tv_room_name.text = mRoomName
                 room_name_et.setText(mRoomName)
+            } ?: run {
+                showCreateRoomFields()
             }
             roomsViewModel.createTokenForRoom(roomId, mParticipantName)
             buttonCreateRoom.isEnabled = true
@@ -174,7 +176,19 @@ class RoomCreateFragment @Inject constructor(
                 buttonCreateRoom.isEnabled = true
                 mRoomName = it.toString()
             }
+        } ?: run {
+            showCreateRoomFields()
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        roomsViewModel.stopObserveRoomCreatedValue()
+    }
+
+    private fun showCreateRoomFields() {
+        create_room_fields.visibility = View.VISIBLE
+        roomloadingProgressBar.visibility = View.GONE
     }
 
     private fun clearInfo() {

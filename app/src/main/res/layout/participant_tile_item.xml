@@ -37,6 +37,20 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/network_quality_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:textColor="@color/telnyx_green"
+            android:letterSpacing="0.08"
+            android:textSize="12sp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            tools:text="▃▄▅▆▇" />
+
+        <TextView
             android:id="@+id/participant_tile_name"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

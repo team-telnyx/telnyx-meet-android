@@ -44,6 +44,8 @@ class JoinRoomFragment @Inject constructor(
         roomsViewModel.clearChatHistory()
         roomsViewModel.checkPermissions(requireActivity())
 
+        (activity as ManageRoomActivity).setActionBarTitle("Telnyx Video Rooms")
+
         roomsViewModel.permissionRequest.observe(this.viewLifecycleOwner) { permission ->
             permissionsGranted = permission
         }

@@ -22,6 +22,16 @@
         android:title="@string/flip_camera"
         app:showAsAction="collapseActionView" />
     <item
+        android:id="@+id/action_blur"
+        android:icon="@drawable/ic_blur"
+        android:title="@string/blur_background"
+        app:showAsAction="collapseActionView" />
+    <item
+        android:id="@+id/action_virtual_background"
+        android:icon="@drawable/ic_background_replace"
+        android:title="@string/virtual_background"
+        app:showAsAction="collapseActionView" />
+    <item
         android:id="@+id/action_mic_source"
         android:icon="@drawable/ic_speaker"
         android:title="@string/mic_source"
@@ -43,6 +53,12 @@
         android:id="@+id/action_view_participants"
         android:icon="@drawable/ic_people"
         android:title="@string/view_participants"
+        app:showAsAction="collapseActionView" />
+
+    <item
+        android:id="@+id/enable_nq_metrics"
+        android:icon="@drawable/ic_network_quality_on"
+        android:title="@string/network_quality"
         app:showAsAction="collapseActionView" />
 
     <item

@@ -16,10 +16,14 @@ android {
         applicationId "com.telnyx.meet"
         minSdkVersion 23
         targetSdkVersion 31
-        versionCode 1
-        versionName "1.0"
+        versionCode 7
+        versionName "7.0"
 
         multiDexEnabled true
+
+        //RenderScript
+        renderscriptTargetApi 19
+        renderscriptSupportModeEnabled true
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "java.util.concurrent.atomic.AtomicBoolean", "IS_APP_TESTING", "new java.util.concurrent.atomic.AtomicBoolean(false)"
@@ -42,11 +46,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
     }
     testOptions {
         unitTests.all {
@@ -70,7 +74,7 @@ android {
 dependencies {
 
     // SDK:
-    implementation 'com.github.team-telnyx:telnyx-video-android:v0.0.3'
+    implementation 'com.github.team-telnyx:telnyx-video-android:v0.2.0'
 
     implementation 'commons-codec:commons-codec:1.13'
 
@@ -108,7 +112,7 @@ dependencies {
     implementation deps.cameraxView
 
     implementation deps.hilt.android
-    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'com.google.android.material:material:1.6.0'
     kapt deps.hilt.compiler
 
 

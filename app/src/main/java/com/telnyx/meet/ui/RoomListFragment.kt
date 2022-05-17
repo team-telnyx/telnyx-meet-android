@@ -45,7 +45,7 @@ class RoomListFragment @Inject constructor(
 
     override fun onItemClicked(roomId: String, roomName: String) {
         if (permissionsGranted) {
-            navigateToRoomCreate(roomId, true)
+            navigateToRoomCreate(roomId, roomName, true)
         } else {
             roomsViewModel.checkPermissions(requireActivity())
         }
@@ -99,11 +99,15 @@ class RoomListFragment @Inject constructor(
         }
     }
 
-    private fun navigateToRoomCreate(roomId: String? = null, isForJoin: Boolean) {
+    private fun navigateToRoomCreate(
+        roomId: String? = null,
+        roomName: String? = null,
+        isForJoin: Boolean
+    ) {
         if (participantName.isEmpty()) {
             participantName = participant_name_et.text.toString()
         }
-        participantName?.let { participantName ->
+        participantName.let { participantName ->
             if (participantName.isNotEmpty()) {
                 if (!roomId.isNullOrEmpty() || !isForJoin) {
                     val action =
@@ -111,7 +115,9 @@ class RoomListFragment @Inject constructor(
                             participantName
                         )
                     action.roomId = roomId
-                    action.roomName = roomId
+                    if (roomName != null) {
+                        action.roomName = roomName
+                    }
                     navigator.navController.navigate(action)
                 } else {
                     Toast.makeText(

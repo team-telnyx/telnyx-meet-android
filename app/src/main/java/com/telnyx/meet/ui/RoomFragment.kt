@@ -15,6 +15,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.bugsnag.android.Bugsnag
 import com.bugsnag.android.Severity
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -27,8 +28,10 @@ import com.telnyx.meet.ui.adapters.ParticipantTileListener
 import com.telnyx.meet.ui.models.*
 import com.telnyx.meet.ui.utilities.calculateTokenExpireTime
 import com.telnyx.meet.ui.utilities.getCurrentTimeHHmm
+import com.telnyx.video.sdk.filter.TelnyxVideoProcessing
 import com.telnyx.video.sdk.utilities.CameraDirection
 import com.telnyx.video.sdk.utilities.PublishConfigHelper
+import com.telnyx.video.sdk.utilities.StateAction
 import com.telnyx.video.sdk.webSocket.model.receive.PluginDataBody
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamConfig
@@ -63,17 +66,19 @@ class RoomFragment @Inject constructor(
 
         private enum class CapturerConstraints(val value: Int) {
             // 720p at 30 fps
-            WIDTH(1280),
-            HEIGHT(720),
+            WIDTH(256),
+            HEIGHT(256),
             FPS(30)
         }
     }
 
+    private var updateAdapterEnabled: Boolean = true
     private val SELF_STREAM_ID = UUID.randomUUID().toString()
     private var menu: Menu? = null
     private var selfSurface: SurfaceViewRenderer? = null
     private var mStatsDialog: BottomSheetDialog? = null
     private var mStatsParticipant: StatsParticipant? = null
+    private var networkQualityList = mutableListOf<String>()
 
     private var mSharingParticipant: Participant? = null
     private var currentViewMode: ViewMode = ViewMode.FULL_PARTICIPANTS
@@ -87,8 +92,12 @@ class RoomFragment @Inject constructor(
     private var mRefreshTimer: Int = 0
     val roomsViewModel: RoomsViewModel by activityViewModels()
 
+    private var videoProcessing: TelnyxVideoProcessing? = null
     private var toggledVideo = false
     private var toggledAudio = false
+    private var toggledBlur = false
+    private var toggledVirtualBackground = false
+    private var toggleNetworkQuality = false
     private var speakerViewEnabled = false
     private var isFullShare = false
 
@@ -157,7 +166,11 @@ class RoomFragment @Inject constructor(
     }
 
     private fun startCounter() {
-        mRefreshTokenJob = CoroutineScope(Dispatchers.Main).launch {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            Timber.tag("RoomFragment")
+                .d("CoroutineExceptionHandler refresh token counter: $exception")
+        }
+        mRefreshTokenJob = CoroutineScope(Dispatchers.Main).launch(handler) {
             if (isActive) {
                 Timber.tag("RoomFragment").d("Starting counter")
                 delay(mRefreshTimer.toLong())
@@ -207,6 +220,38 @@ class RoomFragment @Inject constructor(
                 true
             }
 
+            R.id.action_blur -> {
+                if (!toggledBlur && !toggledVirtualBackground) {
+                    publishConfigHelper?.let {
+                        applyBlurFilter(it)
+                        toggledBlur = true
+                    } ?: run {
+                        Timber.tag("RoomFragment")
+                            .d("There is no camera stream to apply filter to or existing filter in use")
+                    }
+                } else {
+                    removeFilter()
+                    toggledBlur = false
+                }
+                true
+            }
+
+            R.id.action_virtual_background -> {
+                if (!toggledVirtualBackground && !toggledBlur) {
+                    publishConfigHelper?.let {
+                        applyBackgroundFilter(it)
+                        toggledVirtualBackground = true
+                    } ?: run {
+                        Timber.tag("RoomFragment")
+                            .d("There is no camera stream to apply filter to or existing filter in use")
+                    }
+                } else {
+                    removeFilter()
+                    toggledVirtualBackground = false
+                }
+                true
+            }
+
             R.id.action_mic_source -> {
                 val audioDialog = roomsViewModel.createAudioOutputSelectionDialog(this)
                 audioDialog.show()
@@ -235,6 +280,19 @@ class RoomFragment @Inject constructor(
                 true
             }
 
+            R.id.enable_nq_metrics -> {
+                toggleNetworkQuality = if (!toggleNetworkQuality) {
+                    item.icon = context?.getDrawable(R.drawable.ic_network_quality_on)
+                    startNetworkQualityCapture()
+                    true
+                } else {
+                    item.icon = context?.getDrawable(R.drawable.ic_network_quality_off)
+                    stopNetworkQualityCapture()
+                    false
+                }
+                true
+            }
+
             R.id.action_report_issue -> {
                 showIssueDialog()
                 true
@@ -242,6 +300,14 @@ class RoomFragment @Inject constructor(
 
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun stopNetworkQualityCapture() {
+        roomsViewModel.disableNetworkMetricsReport(networkQualityList)
+    }
+
+    private fun startNetworkQualityCapture() {
+        roomsViewModel.enableNetworkMetricsReport(networkQualityList)
     }
 
     private fun stopAudioCapture() {
@@ -302,6 +368,20 @@ class RoomFragment @Inject constructor(
                 roomsViewModel.updateStream(it)
             }
         }
+    }
+
+    private fun applyBackgroundFilter(publishConfigHelper: PublishConfigHelper) {
+        videoProcessing = TelnyxVideoProcessing(this.requireContext(), publishConfigHelper)
+        videoProcessing?.applyVirtualBackground("clouds.jpeg")
+    }
+
+    private fun applyBlurFilter(publishConfigHelper: PublishConfigHelper) {
+        videoProcessing = TelnyxVideoProcessing(this.requireContext(), publishConfigHelper)
+        videoProcessing?.applyBackgroundBlur()
+    }
+
+    private fun removeFilter() {
+        videoProcessing?.removeImageProcess()
     }
 
     private fun showIssueDialog() {
@@ -397,8 +477,27 @@ class RoomFragment @Inject constructor(
         checkInitialMediaStatus()
     }
 
+    private fun controlledUpdateOfAdapter() {
+        if (updateAdapterEnabled) {
+            val handler = CoroutineExceptionHandler { _, exception ->
+                Timber.tag("RoomFragment").d("CoroutineExceptionHandler adapter update: $exception")
+            }
+            CoroutineScope(Dispatchers.Main).launch(handler) {
+                if (isActive) {
+                    updateAdapterEnabled = false
+                    participantAdapter.notifyDataSetChanged()
+                    delay(1000)
+                    updateAdapterEnabled = true
+                }
+            }
+        }
+    }
+
     private fun checkInitialMediaStatus() {
-        CoroutineScope(Dispatchers.Main).launch {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            Timber.tag("RoomFragment").d("CoroutineExceptionHandler media status: $exception")
+        }
+        CoroutineScope(Dispatchers.Main).launch(handler) {
             if (isActive) {
                 delay(300)
                 if (roomsViewModel.cameraInitialState == MediaOnStart.ENABLED) {
@@ -413,6 +512,16 @@ class RoomFragment @Inject constructor(
                         context?.getDrawable(R.drawable.ic_mic_off_white)
                     startAudioCapture()
                 }
+                if (roomsViewModel.getMicState() == MediaOnStart.ENABLED) {
+                    toggledAudio = true
+                    menu?.findItem(R.id.action_mic)?.icon =
+                        context?.getDrawable(R.drawable.ic_mic_white)
+                }
+                if (roomsViewModel.getCameraState() == MediaOnStart.ENABLED) {
+                    toggledVideo = true
+                    menu?.findItem(R.id.action_camera)?.icon =
+                        context?.getDrawable(R.drawable.ic_camera_white)
+                }
             }
         }
     }
@@ -420,6 +529,10 @@ class RoomFragment @Inject constructor(
     private fun setupRecyclerView() {
         setRecyclerLayoutParams(currentViewMode)
         participantTileRecycler.adapter = participantAdapter
+        val animator = participantTileRecycler.getItemAnimator()
+        if (animator is SimpleItemAnimator) {
+            animator.supportsChangeAnimations = false
+        }
     }
 
     private fun setRecyclerLayoutParams(viewMode: ViewMode) {
@@ -461,11 +574,20 @@ class RoomFragment @Inject constructor(
     private fun setObservers() {
         roomsViewModel.getStateChange().observe(viewLifecycleOwner) { state ->
             Timber.tag("SDKState").d("State: $state")
+            when (state.action) {
+                StateAction.NETWORK_METRICS_REPORT.action -> controlledUpdateOfAdapter()
+            }
         }
 
         roomsViewModel.getParticipants().observe(viewLifecycleOwner) { participants ->
             participants.let { participantList ->
                 participantAdapter.setData(participantList)
+                networkQualityList.addAll(
+                    participantList.map {
+                        it.participantId
+                    }
+                )
+
                 if (participantList.size > 0) {
                     selfParticipantId = participantList[0].participantId
                     selfParticipantHandleId = participantList[0].id
@@ -481,6 +603,10 @@ class RoomFragment @Inject constructor(
             participantJoined?.let { joinedParticipantEvent ->
                 joinedParticipantEvent.getContentIfNotHandled()?.let {
                     participantAdapter.addParticipant(it)
+                    networkQualityList.add(it.participantId)
+                    if (toggleNetworkQuality) {
+                        startNetworkQualityCapture()
+                    }
                     if (it.canReceiveMessages) {
                         roomsViewModel.addMessageToHistory(roomsViewModel.createAdminMessage("${it.externalUsername} has joined"))
                     }
@@ -516,7 +642,9 @@ class RoomFragment @Inject constructor(
                     ?.let { participantChangedStreams ->
                         Timber.tag("RoomFragment")
                             .d("Participant $participantChangedStreams stream changed")
-                        participantAdapter.notifyDataSetChanged()
+                        val position =
+                            participantAdapter.getPositionFromParticipant(participant = participantChangedStreams)
+                        participantAdapter.notifyItemChanged(position)
                         if ((mSharingParticipant?.participantId == participantChangedStreams.participantId)) {
                             // Check if still sharing
                             if (participantChangedStreams.streams.find { it.streamKey == "presentation" }?.videoEnabled != StreamStatus.ENABLED) {
@@ -533,7 +661,11 @@ class RoomFragment @Inject constructor(
 
         roomsViewModel.getSpeakingParticipant().observe(viewLifecycleOwner) { speakingParticipant ->
             speakingParticipant?.let {
-                participantAdapter.notifyDataSetChanged()
+                // controlledUpdateOfAdapter()
+                val position = participantAdapter.getPositionFromParticipant(participant = it.first)
+                Timber.tag("RoomFragment")
+                    .d("Speaking: ${it.first.externalUsername} in position: $position")
+                participantAdapter.notifyItemChanged(position)
             }
         }
 
@@ -613,7 +745,10 @@ class RoomFragment @Inject constructor(
         statsSource: StatsSource
     ) {
         mStatsjob?.cancel()
-        mStatsjob = CoroutineScope(Dispatchers.Default).launch {
+        val handler = CoroutineExceptionHandler { _, exception ->
+            Timber.tag("RoomFragment").d("CoroutineExceptionHandler stats job: $exception")
+        }
+        mStatsjob = CoroutineScope(Dispatchers.Default).launch(handler) {
             while (isActive) {
                 getWebRTCStatsForStream(participantId, streamKey, statsSource)
                 delay(2000)
@@ -897,6 +1032,16 @@ class RoomFragment @Inject constructor(
             fabExtraParticipant.visibility = View.VISIBLE
         } else {
             fabExtraParticipant.visibility = View.GONE
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (toggledAudio) {
+            roomsViewModel.setMicState(MediaOnStart.ENABLED)
+        }
+        if (toggledVideo) {
+            roomsViewModel.setCameraState(MediaOnStart.ENABLED)
         }
     }
 
