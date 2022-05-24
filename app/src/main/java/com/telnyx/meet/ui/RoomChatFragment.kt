@@ -71,7 +71,7 @@ class RoomChatFragment @Inject constructor(
 
     private fun sendUserMessage() {
         val messageText = chat_edit_text.text.toString()
-        val messageContent = MessageContent(type = MessageType.TEXT, messageText, null)
+        val messageContent = MessageContent(type = MessageType.TEXT.type, messageText, null)
         val usersToArray =
             participantsInChat.filter { it.selected }.map { it.participant.participantId }.toList()
         val message = Message(messageContent, usersToArray)
@@ -145,6 +145,9 @@ class RoomChatFragment @Inject constructor(
                     val messageUI =
                         MessageUI(sender = "SELF", fullMessage = it, getCurrentTimeHHmm())
                     roomChatAdapter?.addMessageToChat(messageUI)
+                    roomChatAdapter?.let { adapter ->
+                        chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
+                    }
                 }
             }
 
@@ -166,6 +169,9 @@ class RoomChatFragment @Inject constructor(
                                 getCurrentTimeHHmm()
                             )
                         roomChatAdapter?.addMessageToChat(messageUI)
+                        roomChatAdapter?.let { adapter ->
+                            chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
+                        }
                     }
             }
     }
@@ -174,6 +180,9 @@ class RoomChatFragment @Inject constructor(
         roomChatAdapter?.addMessageToChat(
             roomsViewModel.createAdminMessage(adminMessageText)
         )
+        roomChatAdapter?.let { adapter ->
+            chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
+        }
     }
 
     override fun onDestroy() {

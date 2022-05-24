@@ -32,6 +32,7 @@ import com.telnyx.video.sdk.filter.TelnyxVideoProcessing
 import com.telnyx.video.sdk.utilities.CameraDirection
 import com.telnyx.video.sdk.utilities.PublishConfigHelper
 import com.telnyx.video.sdk.utilities.StateAction
+import com.telnyx.video.sdk.utilities.Status
 import com.telnyx.video.sdk.webSocket.model.receive.PluginDataBody
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamConfig
@@ -93,6 +94,7 @@ class RoomFragment @Inject constructor(
     val roomsViewModel: RoomsViewModel by activityViewModels()
 
     private var videoProcessing: TelnyxVideoProcessing? = null
+    private var toggledButton = false
     private var toggledVideo = false
     private var toggledAudio = false
     private var toggledBlur = false
@@ -137,22 +139,23 @@ class RoomFragment @Inject constructor(
         mRefreshToken = args.refreshToken
         mRefreshTimer = args.refreshTime
         requireActivity().onBackPressedDispatcher.addCallback(this) {
-            goBack()
+            disconnectSequence()
         }
         setHasOptionsMenu(true)
     }
 
-    private fun goBack(wasKicked: Boolean = false) {
+    private fun disconnectSequence(wasKicked: Boolean = false) {
         if (toggledVideo) {
             stopCameraCapture()
+            toggledVideo = false
         }
         if (toggledAudio) {
             stopAudioCapture()
+            toggledAudio = false
         }
         if (!wasKicked) {
             roomsViewModel.disconnect()
         }
-        navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
         mRefreshTokenJob?.cancel()
     }
 
@@ -574,6 +577,13 @@ class RoomFragment @Inject constructor(
     private fun setObservers() {
         roomsViewModel.getStateChange().observe(viewLifecycleOwner) { state ->
             Timber.tag("SDKState").d("State: $state")
+            when (state.status) {
+                Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
+                Status.DISCONNECTED.status -> {
+                    roomProgressBar.visibility = View.GONE
+                    navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+                }
+            }
             when (state.action) {
                 StateAction.NETWORK_METRICS_REPORT.action -> controlledUpdateOfAdapter()
             }
@@ -629,7 +639,7 @@ class RoomFragment @Inject constructor(
                         .d("getLeavingParticipantId :: $participantLeavingId")
                     if (id == selfParticipantHandleId && reason == PluginDataBody.LeftReason.KICKED.reason) {
                         // It's ourselves, remove from the room.
-                        goBack(wasKicked = true)
+                        disconnectSequence(wasKicked = true)
                         Toast.makeText(requireContext(), "You were kicked!", Toast.LENGTH_LONG)
                             .show()
                     }

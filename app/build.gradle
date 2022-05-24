@@ -74,7 +74,7 @@ android {
 dependencies {
 
     // SDK:
-    implementation 'com.github.team-telnyx:telnyx-video-android:v0.2.0'
+    implementation ('com.github.team-telnyx:telnyx-meet-android-sdk:0.2.4@aar'){transitive=true}
 
     implementation 'commons-codec:commons-codec:1.13'
 

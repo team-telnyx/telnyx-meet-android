@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Telnyx_Meet.iml" filepath="$PROJECT_DIR$/.idea/modules/Telnyx_Meet.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Telnyx_Meet.app.unitTest.iml" />
     </modules>
   </component>
 </project>

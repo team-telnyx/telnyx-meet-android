@@ -382,7 +382,7 @@ class RoomsViewModel @Inject constructor(
         date = getCurrentTimeHHmm(),
         sender = "ADMIN",
         fullMessage = Message(
-            message = MessageContent(type = MessageType.TEXT, payload = adminMessageText, null),
+            message = MessageContent(type = MessageType.TEXT.type, payload = adminMessageText, null),
             recipients = emptyList()
         )
     )
