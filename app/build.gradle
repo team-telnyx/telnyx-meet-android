@@ -70,11 +70,9 @@ android {
 dependencies {
 
     // SDK:
-    implementation 'com.github.team-telnyx:telnyx-video-android:v0.0.3'
+    implementation ('com.github.team-telnyx:telnyx-meet-android-sdk:0.2.5@aar'){transitive=true}
 
-    implementation 'commons-codec:commons-codec:1.13'
-
-    implementation deps.webrtc
+    implementation 'commons-codec:commons-codec:1.15'
 
     //leak canary
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
