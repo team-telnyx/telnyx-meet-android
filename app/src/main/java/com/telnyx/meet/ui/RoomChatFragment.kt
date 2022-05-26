@@ -71,7 +71,7 @@ class RoomChatFragment @Inject constructor(
 
     private fun sendUserMessage() {
         val messageText = chat_edit_text.text.toString()
-        val messageContent = MessageContent(type = MessageType.TEXT, messageText, null)
+        val messageContent = MessageContent(type = MessageType.TEXT.type, messageText, null)
         val usersToArray =
             participantsInChat.filter { it.selected }.map { it.participant.participantId }.toList()
         val message = Message(messageContent, usersToArray)

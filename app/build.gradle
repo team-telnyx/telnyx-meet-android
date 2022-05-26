@@ -8,6 +8,9 @@ plugins {
 }
 apply plugin: 'kotlin-android'
 
+def localProperties = new Properties()
+localProperties.load(new FileInputStream(rootProject.file("local.properties")))
+
 android {
     compileSdkVersion 31
     buildToolsVersion "30.0.3"
@@ -27,13 +30,26 @@ android {
     }
 
     buildTypes {
+        Properties properties = new Properties()
+        if (project.rootProject.file('local.properties').canRead()) {
+            properties.load(project.rootProject.file("local.properties").newDataInputStream())
+        } else {
+            throw new GradleException("Could not read local.properties!")
+        }
+
         release {
+            buildConfigField 'String', "API_KEY", properties.getProperty('API_KEY', '"xxxxx"')
+            resValue('string', "api_key", properties.getProperty('API_KEY', '"xxxxx"'))
+
             testCoverageEnabled true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable true
         }
         debug {
+            buildConfigField 'String', "API_KEY", properties.getProperty('API_KEY', '"xxxxx"')
+            resValue('string', "api_key", properties.getProperty('API_KEY', '"xxxxx"'))
+
             testCoverageEnabled true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
