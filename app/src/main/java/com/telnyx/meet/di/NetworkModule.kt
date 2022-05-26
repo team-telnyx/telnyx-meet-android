@@ -1,6 +1,7 @@
 package com.telnyx.meet.di
 
 import com.google.gson.GsonBuilder
+import com.telnyx.meet.BuildConfig
 import com.telnyx.meet.data.RoomService
 import dagger.Module
 import dagger.Provides
@@ -23,7 +24,7 @@ object NetworkModule {
 
     @Provides
     @ApiKey
-    fun provideApiKey() = "KEY123....."
+    fun provideApiKey() = BuildConfig.API_KEY // Replace this...
 
 
     @Singleton
