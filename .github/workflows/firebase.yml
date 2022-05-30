@@ -26,6 +26,11 @@ jobs:
           distribution: 'zulu'
           java-version: '11'
 
+      - name: Update API Key from Secrets
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+        run: echo API_KEY="$API_KEY" > ./local.properties
+
       - name: Assemble app debug APK
         run: bash ./gradlew assembleDebug --stacktrace
 
