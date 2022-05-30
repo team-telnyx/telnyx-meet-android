@@ -7,6 +7,10 @@ import android.widget.TextView
 import androidx.test.espresso.*
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
+import androidx.test.espresso.action.GeneralLocation
+import androidx.test.espresso.action.GeneralSwipeAction
+import androidx.test.espresso.action.Press
+import androidx.test.espresso.action.Swipe
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -73,8 +77,6 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
     fun on_B_CreateARoomShowsEmptyNamesScreen() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
             onView(withId(R.id.fab)).perform(click())
             onView(withId(R.id.label_room_name)).check(matches(isDisplayed()))
@@ -90,8 +92,6 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
     fun on_C_testEmptyRoomNameCausesError() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
             onView(withId(R.id.fab)).perform(click())
             onView(withId(R.id.buttonCreateRoom)).check(matches(isEnabled()))
@@ -105,74 +105,9 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
     }
 
     @Test
-    fun on_E_testAccessToGivenRoom() {
+    fun on_D_testAccessToGivenRoomToggleVideoThenAudioCheckStats() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
-            onView(withId(R.id.see_available_rooms_text)).waitUntilVisible(15000).perform(click())
-            Thread.sleep(2000)
-            onView(withId(R.id.roomsRecycler)).perform(
-                scrollTo<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(roomName)
-                    )
-                )
-            )
-            onView(withId(R.id.roomsRecycler)).perform(
-                actionOnItem<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(
-                            roomName
-                        )
-                    ),
-                    click()
-                )
-            )
-            Thread.sleep(5000)
-            Espresso.pressBack()
-        }
-    }
-
-    @Test
-    fun on_F_testAccessToGivenRoomToggleVideo() {
-        assertDoesNotThrow {
-            activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
-            onView(withId(R.id.see_available_rooms_text)).perform(click())
-            Thread.sleep(2000)
-            onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
-                scrollTo<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(roomName)
-                    )
-                )
-            )
-            onView(withId(R.id.roomsRecycler)).perform(
-                actionOnItem<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(
-                            roomName
-                        )
-                    ),
-                    click()
-                )
-            )
-            onView(withId(R.id.action_camera)).waitUntilVisible(15000).perform(click())
-            Thread.sleep(1000)
-            onView(withId(R.id.action_camera)).perform(click())
-            Thread.sleep(1000)
-            Espresso.pressBack()
-        }
-    }
-
-    @Test
-    fun on_G_testAccessToGivenRoomToggleVideoCheckStats() {
-        assertDoesNotThrow {
-            activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
             onView(withId(R.id.participant_name_et)).waitUntilVisible(25000).perform(
                 setTextInTextView("Test Participant"),
@@ -197,6 +132,9 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
                 )
             )
             onView(withId(R.id.action_camera)).waitUntilVisible(15000).perform(click())
+            Thread.sleep(2000)
+            onView(withId(R.id.action_mic)).perform(click())
+            Thread.sleep(2000)
             onView(withId(R.id.participantTileRecycler)).waitUntilVisible(15000).perform(
                 actionOnItem<ParticipantTileAdapter.ParticipantTileHolder>(
                     hasDescendant(
@@ -207,19 +145,23 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
                     click()
                 )
             )
-            Thread.sleep(1000)
+            Thread.sleep(2000)
             onView(withId(R.id.stats_dialog_title)).waitUntilVisible(15000)
                 .check(matches(isDisplayed()))
-            Espresso.pressBack()
+            Thread.sleep(2000)
+            onView(withId(R.id.stats_dialog_id)).waitUntilVisible(15000).perform(customSwipeDown())
+            Thread.sleep(2000)
+            onView(withId(R.id.action_camera)).perform(click())
+            Thread.sleep(2000)
+            onView(withId(R.id.action_mic)).perform(click())
+            Thread.sleep(2000)
         }
     }
 
     @Test
-    fun on_H_testAccessToGivenRoomToggleAudio() {
+    fun on_E_testAccessToGivenRoomToggleAudioThenVideo() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
             Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
@@ -240,93 +182,20 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
                 )
             )
             onView(withId(R.id.action_mic)).waitUntilVisible(25000).perform(click())
-            Thread.sleep(1000)
-            onView(withId(R.id.action_mic)).perform(click())
-            Thread.sleep(1000)
-            Espresso.pressBack()
-        }
-    }
-
-    @Test
-    fun on_I_testAccessToGivenRoomToggleAudioThenVideo() {
-        assertDoesNotThrow {
-            activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
-            onView(withId(R.id.see_available_rooms_text)).perform(click())
             Thread.sleep(2000)
-            onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
-                scrollTo<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(roomName)
-                    )
-                )
-            )
-            onView(withId(R.id.roomsRecycler)).perform(
-                actionOnItem<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(
-                            roomName
-                        )
-                    ),
-                    click()
-                )
-            )
-            onView(withId(R.id.action_mic)).waitUntilVisible(25000).perform(click())
-            Thread.sleep(1000)
             onView(withId(R.id.action_camera)).perform(click())
-            Thread.sleep(1000)
-            onView(withId(R.id.action_mic)).perform(click())
-            Thread.sleep(1000)
-            onView(withId(R.id.action_camera)).perform(click())
-            Thread.sleep(1000)
-            Espresso.pressBack()
-        }
-    }
-
-    @Test
-    fun on_J_testAccessToGivenRoomToggleVideoThenAudio() {
-        assertDoesNotThrow {
-            activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
-            onView(withId(R.id.see_available_rooms_text)).perform(click())
             Thread.sleep(2000)
-            onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
-                scrollTo<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(roomName)
-                    )
-                )
-            )
-            onView(withId(R.id.roomsRecycler)).perform(
-                actionOnItem<RoomAdapter.RoomHolder>(
-                    hasDescendant(
-                        withText(
-                            roomName
-                        )
-                    ),
-                    click()
-                )
-            )
-            onView(withId(R.id.action_camera)).waitUntilVisible(25000).perform(click())
-            Thread.sleep(1000)
             onView(withId(R.id.action_mic)).perform(click())
-            Thread.sleep(1000)
+            Thread.sleep(2000)
             onView(withId(R.id.action_camera)).perform(click())
-            Thread.sleep(1000)
-            onView(withId(R.id.action_mic)).perform(click())
-            Thread.sleep(1000)
-            Espresso.pressBack()
+            Thread.sleep(2000)
         }
     }
 
     @Test
-    fun on_K_testAccessToGivenRoomNavToChatSendMessage() {
+    fun on_F_testAccessToGivenRoomNavToChatSendMessage() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
             Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
@@ -358,16 +227,13 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             Thread.sleep(2000)
             onView(withId(R.id.chat_send_btn)).perform(click())
             Thread.sleep(1000)
-            Espresso.pressBack()
         }
     }
 
     @Test
-    fun on_L_testAccessToGivenRoomNavToParticipantsList() {
+    fun on_G_testAccessToGivenRoomNavToParticipantsList() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
-            onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-            onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
             onView(withId(R.id.see_available_rooms_text)).perform(click())
             Thread.sleep(2000)
             onView(withId(R.id.roomsRecycler)).waitUntilVisible(25000).perform(
@@ -392,15 +258,12 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withText("View participants")).waitUntilVisible(15000).perform(click())
             Thread.sleep(2000)
             onView(withId(R.id.participantRecycler)).check(matches(isDisplayed()))
-            Espresso.pressBack()
         }
     }
 
     @Test
-    fun on_O_testParticipantNameNotEmpty() {
+    fun on_H_testParticipantNameNotEmpty() {
         activityRule.launchActivity(null)
-        onView(withId(R.id.join_explainer_text)).check(matches(isDisplayed()))
-        onView(withId(R.id.buttonJoinRoom)).check(matches(isDisplayed()))
         onView(withId(R.id.see_available_rooms_text)).perform(click())
         onView(withId(R.id.participant_name_et)).waitUntilVisible(25000).perform(clearText())
         onView(withId(R.id.fab)).perform(click())
@@ -428,6 +291,15 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
                 return "replace text"
             }
         }
+    }
+
+    private fun customSwipeDown(): ViewAction {
+        return GeneralSwipeAction(
+            Swipe.FAST,
+            GeneralLocation.TOP_CENTER,
+            GeneralLocation.BOTTOM_CENTER,
+            Press.FINGER
+        )
     }
 }
 
