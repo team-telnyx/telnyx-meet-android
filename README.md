@@ -97,6 +97,9 @@ Fill the **Room Id** described on [Step 3](#step-3-create-a-room-id) and provide
 - [Telnyx Meet App iOS](https://github.com/team-telnyx/telnyx-meet-ios)
 - [Telnyx Meet App JS](https://github.com/team-telnyx/telnyx-meet)
 
+## Using Jetpack Compose?
+ Have a look at our Jetpack Compose reference application [here](https://github.com/team-telnyx/telnyx-meet-android-compose/)
+
 ## License
 
 Apache 2.0 license. See [LICENSE.txt](LICENSE.txt) for details.
