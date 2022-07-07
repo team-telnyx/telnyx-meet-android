@@ -13,7 +13,6 @@ import androidx.activity.addCallback
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.bugsnag.android.Bugsnag
@@ -29,9 +28,8 @@ import com.telnyx.meet.ui.models.*
 import com.telnyx.meet.ui.utilities.calculateTokenExpireTime
 import com.telnyx.meet.ui.utilities.getCurrentTimeHHmm
 import com.telnyx.video.sdk.filter.TelnyxVideoProcessing
-import com.telnyx.video.sdk.utilities.CameraDirection
-import com.telnyx.video.sdk.utilities.PublishConfigHelper
-import com.telnyx.video.sdk.utilities.StateAction
+import com.telnyx.video.sdk.ui.adapters.WrapGridLayoutManager
+import com.telnyx.video.sdk.utilities.*
 import com.telnyx.video.sdk.utilities.Status
 import com.telnyx.video.sdk.webSocket.model.receive.PluginDataBody
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
@@ -54,6 +52,7 @@ class RoomFragment @Inject constructor(
     companion object RoomFragmentConstants {
         private const val FULL_PARTICIPANT_LIST = 8
         private const val SHARING_PARTICIPANT_LIST = 4
+        private const val SHOULD_RESTART_CAPTURE = "SHOULD_RESTART_CAPTURE"
 
         private const val VIDEO_TRACK_KEY = "000"
         private const val AUDIO_TRACK_KEY = "001"
@@ -73,7 +72,6 @@ class RoomFragment @Inject constructor(
         }
     }
 
-    private var updateAdapterEnabled: Boolean = true
     private val SELF_STREAM_ID = UUID.randomUUID().toString()
     private var menu: Menu? = null
     private var selfSurface: SurfaceViewRenderer? = null
@@ -102,6 +100,9 @@ class RoomFragment @Inject constructor(
     private var toggleNetworkQuality = false
     private var speakerViewEnabled = false
     private var isFullShare = false
+    private var shouldCaptureAgain = false
+
+    val stateQueue: Queue<State> = LinkedList<State>()
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -142,6 +143,7 @@ class RoomFragment @Inject constructor(
             disconnectSequence()
         }
         setHasOptionsMenu(true)
+        shouldCaptureAgain = savedInstanceState?.getBoolean(SHOULD_RESTART_CAPTURE, false) ?: false
     }
 
     private fun disconnectSequence(wasKicked: Boolean = false) {
@@ -155,6 +157,8 @@ class RoomFragment @Inject constructor(
         }
         if (!wasKicked) {
             roomsViewModel.disconnect()
+            roomsViewModel.setCameraState(MediaOnStart.DISABLED)
+            roomsViewModel.setMicState(MediaOnStart.DISABLED)
         }
         mRefreshTokenJob?.cancel()
     }
@@ -480,17 +484,27 @@ class RoomFragment @Inject constructor(
         checkInitialMediaStatus()
     }
 
-    private fun controlledUpdateOfAdapter() {
-        if (updateAdapterEnabled) {
+    override fun onResume() {
+        super.onResume()
+        if (shouldCaptureAgain) {
+            stopCameraCapture()
             val handler = CoroutineExceptionHandler { _, exception ->
-                Timber.tag("RoomFragment").d("CoroutineExceptionHandler adapter update: $exception")
+                Timber.tag("RoomFragment").d("CoroutineExceptionHandler media status: $exception")
             }
             CoroutineScope(Dispatchers.Main).launch(handler) {
                 if (isActive) {
-                    updateAdapterEnabled = false
-                    participantAdapter.notifyDataSetChanged()
-                    delay(1000)
-                    updateAdapterEnabled = true
+                    delay(300)
+                    if (roomsViewModel.getMicState() == MediaOnStart.ENABLED) {
+                        toggledAudio = true
+                        menu?.findItem(R.id.action_mic)?.icon =
+                            context?.getDrawable(R.drawable.ic_mic_white)
+                    }
+                    if (roomsViewModel.getCameraState() == MediaOnStart.ENABLED) {
+                        toggledVideo = true
+                        menu?.findItem(R.id.action_camera)?.icon =
+                            context?.getDrawable(R.drawable.ic_camera_white)
+                        startCameraCapture()
+                    }
                 }
             }
         }
@@ -506,14 +520,16 @@ class RoomFragment @Inject constructor(
                 if (roomsViewModel.cameraInitialState == MediaOnStart.ENABLED) {
                     toggledVideo = true
                     menu?.findItem(R.id.action_camera)?.icon =
-                        context?.getDrawable(R.drawable.ic_camera_off_white)
+                        context?.getDrawable(R.drawable.ic_camera_white)
                     startCameraCapture()
+                    roomsViewModel.cameraInitialState = MediaOnStart.DISABLED
                 }
                 if (roomsViewModel.micInitialState == MediaOnStart.ENABLED) {
                     toggledAudio = true
                     menu?.findItem(R.id.action_mic)?.icon =
-                        context?.getDrawable(R.drawable.ic_mic_off_white)
+                        context?.getDrawable(R.drawable.ic_mic_white)
                     startAudioCapture()
+                    roomsViewModel.micInitialState = MediaOnStart.DISABLED
                 }
                 if (roomsViewModel.getMicState() == MediaOnStart.ENABLED) {
                     toggledAudio = true
@@ -532,7 +548,7 @@ class RoomFragment @Inject constructor(
     private fun setupRecyclerView() {
         setRecyclerLayoutParams(currentViewMode)
         participantTileRecycler.adapter = participantAdapter
-        val animator = participantTileRecycler.getItemAnimator()
+        val animator = participantTileRecycler.itemAnimator
         if (animator is SimpleItemAnimator) {
             animator.supportsChangeAnimations = false
         }
@@ -540,42 +556,46 @@ class RoomFragment @Inject constructor(
 
     private fun setRecyclerLayoutParams(viewMode: ViewMode) {
         Timber.tag("RoomFragment").d("setRecyclerLayoutParms")
-        when (viewMode) {
-            ViewMode.FULL_PARTICIPANTS -> {
-                participantTileRecycler.layoutManager =
-                    object : GridLayoutManager(this.context, 2) {
-                        override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
-                            lp.height = (height / 4.2).toInt()
-                            lp.width = (width / 2.1).toInt()
-                            return true
+        context?.let { context ->
+            when (viewMode) {
+                ViewMode.FULL_PARTICIPANTS -> {
+                    participantTileRecycler.layoutManager =
+                        object : WrapGridLayoutManager(context, 2) {
+                            override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
+                                lp.height = (height / 4.2).toInt()
+                                lp.width = (width / 2.1).toInt()
+                                return true
+                            }
                         }
-                    }
-            }
-            ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS -> {
-                participantTileRecycler.layoutManager =
-                    object : GridLayoutManager(this.context, 2) {
-                        override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
-                            lp.height = (height / 2.1).toInt()
-                            lp.width = (width / 2.1).toInt()
-                            return true
+                }
+                ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS -> {
+                    participantTileRecycler.layoutManager =
+                        object : WrapGridLayoutManager(context, 2) {
+                            override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
+                                lp.height = (height / 2.1).toInt()
+                                lp.width = (width / 2.1).toInt()
+                                return true
+                            }
                         }
-                    }
-            }
-            ViewMode.MAIN_SHARE_VIEW_ONLY -> {
-                participantTileRecycler.layoutManager =
-                    object : GridLayoutManager(this.context, 1) {
-                        override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
-                            lp.height = height
-                            lp.width = width
-                            return true
+                }
+                ViewMode.MAIN_SHARE_VIEW_ONLY -> {
+                    participantTileRecycler.layoutManager =
+                        object : WrapGridLayoutManager(context, 1) {
+                            override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
+                                lp.height = height
+                                lp.width = width
+                                return true
+                            }
                         }
-                    }
+                }
             }
         }
     }
 
-    private fun setObservers() {
-        roomsViewModel.getStateChange().observe(viewLifecycleOwner) { state ->
+    private fun handleStateChange(stateQueue: Queue<State>) {
+        val queueIterator = stateQueue.iterator()
+        while (queueIterator.hasNext()) {
+            val state = queueIterator.next()
             Timber.tag("SDKState").d("State: $state")
             when (state.status) {
                 Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
@@ -584,8 +604,49 @@ class RoomFragment @Inject constructor(
                     navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
                 }
             }
+            when (state.status) {
+                Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
+                Status.DISCONNECTED.status -> {
+                    roomProgressBar.visibility = View.GONE
+                    navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+                }
+            }
             when (state.action) {
-                StateAction.NETWORK_METRICS_REPORT.action -> controlledUpdateOfAdapter()
+                StateAction.NETWORK_METRICS_REPORT.action -> participantAdapter.initNotifyDataSetJob()
+            }
+            queueIterator.remove()
+        }
+        /* stateQueue.forEach { state ->
+             Timber.tag("SDKState").d("State: $state")
+             when (state.status) {
+                 Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
+                 Status.DISCONNECTED.status -> {
+                     roomProgressBar.visibility = View.GONE
+                     navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+                 }
+             }
+             when (state.action) {
+                 StateAction.NETWORK_METRICS_REPORT.action -> participantAdapter.initNotifyDataSetJob()
+             }
+         }*/
+    }
+
+    private fun setObservers() {
+        roomsViewModel.getStateChange().observe(viewLifecycleOwner) { state ->
+            state?.let {
+                stateQueue.add(it)
+                handleStateChange(stateQueue)
+                // Timber.tag("SDKState").d("State: $it")
+                /*when (it.status) {
+                    Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
+                    Status.DISCONNECTED.status -> {
+                        roomProgressBar.visibility = View.GONE
+                        navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+                    }
+                }
+                when (it.action) {
+                    StateAction.NETWORK_METRICS_REPORT.action -> participantAdapter.initNotifyDataSetJob()
+                }*/
             }
         }
 
@@ -671,7 +732,6 @@ class RoomFragment @Inject constructor(
 
         roomsViewModel.getSpeakingParticipant().observe(viewLifecycleOwner) { speakingParticipant ->
             speakingParticipant?.let {
-                // controlledUpdateOfAdapter()
                 val position = participantAdapter.getPositionFromParticipant(participant = it.first)
                 Timber.tag("RoomFragment")
                     .d("Speaking: ${it.first.externalUsername} in position: $position")
@@ -1053,6 +1113,12 @@ class RoomFragment @Inject constructor(
         if (toggledVideo) {
             roomsViewModel.setCameraState(MediaOnStart.ENABLED)
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        shouldCaptureAgain = roomsViewModel.getCameraState() == MediaOnStart.ENABLED
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(SHOULD_RESTART_CAPTURE, shouldCaptureAgain)
     }
 
     override fun onDestroyView() {

@@ -154,7 +154,6 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.action_camera)).perform(click())
             Thread.sleep(2000)
             onView(withId(R.id.action_mic)).perform(click())
-            Thread.sleep(2000)
         }
     }
 
@@ -163,8 +162,12 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
         assertDoesNotThrow {
             activityRule.launchActivity(null)
             onView(withId(R.id.see_available_rooms_text)).perform(click())
+            onView(withId(R.id.participant_name_et)).waitUntilVisible(25000).perform(
+                setTextInTextView("Test Participant"),
+                closeSoftKeyboard()
+            )
             Thread.sleep(2000)
-            onView(withId(R.id.roomsRecycler)).waitUntilVisible(15000).perform(
+            onView(withId(R.id.roomsRecycler)).perform(
                 scrollTo<RoomAdapter.RoomHolder>(
                     hasDescendant(
                         withText(roomName)
@@ -188,7 +191,6 @@ class ManageRoomDetailsActivityTest : BaseUITest() {
             onView(withId(R.id.action_mic)).perform(click())
             Thread.sleep(2000)
             onView(withId(R.id.action_camera)).perform(click())
-            Thread.sleep(2000)
         }
     }
 

@@ -8,6 +8,8 @@ import com.telnyx.meet.R
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import kotlinx.android.synthetic.main.participant_tile_item.view.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers.Main
 import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoTrack
 import timber.log.Timber
@@ -32,6 +34,7 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
     private val participants = mutableListOf<Participant>()
     private val participantsInAdapter = mutableListOf<Participant>()
     private val viewHolderMap: MutableMap<ParticipantTileHolder, VideoTrack?> = HashMap()
+    private var notifyDatasetJob: Job? = null
 
     private var maxParticipants: Int = 8
 
@@ -61,7 +64,21 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
             pauseRemainingParticipants(participants.takeLast(remainingParticipants))
         }
         participantTileListener.notifyExtraParticipants(remainingParticipants)
-        notifyDataSetChanged()
+        initNotifyDataSetJob()
+    }
+
+    fun initNotifyDataSetJob() {
+        notifyDatasetJob?.cancel()
+        val handler = CoroutineExceptionHandler { _, exception ->
+            Timber.tag("ParticipantTileAdapter")
+                .d("CoroutineExceptionHandler tile adapter update: $exception")
+        }
+        notifyDatasetJob = CoroutineScope(Main).launch(handler) {
+            if (isActive) {
+                delay(1000)
+                notifyDataSetChanged()
+            }
+        }
     }
 
     private fun pauseRemainingParticipants(participantsNotVisible: List<Participant>) {

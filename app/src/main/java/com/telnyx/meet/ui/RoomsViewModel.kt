@@ -94,36 +94,36 @@ class RoomsViewModel @Inject constructor(
 
     fun connectedToRoomObservable(): LiveData<Boolean> = room.getConnectionStatus()
 
-    fun getParticipants(): MutableLiveData<MutableList<Participant>> =
+    fun getParticipants(): LiveData<MutableList<Participant>> =
         room.getParticipantsObservable()
 
-    fun getTextRoomLeavingParticipant(): MutableLiveData<Event<Participant>> =
+    fun getTextRoomLeavingParticipant(): LiveData<Event<Participant>> =
         room.getParticipantLeftTextRoomObservable()
 
-    fun getTextRoomMessageDeliverySuccess(): MutableLiveData<Event<Message>> =
+    fun getTextRoomMessageDeliverySuccess(): LiveData<Event<Message>> =
         room.getTextRoomMessageDeliverySuccess()
 
-    fun getTextRoomMessageDeliveryFailed(): MutableLiveData<Event<Message>> =
+    fun getTextRoomMessageDeliveryFailed(): LiveData<Event<Message>> =
         room.getTextRoomMessageDeliveryFailed()
 
-    fun getTextRoomMessageReceived(): MutableLiveData<Event<Pair<String, Message>>> =
+    fun getTextRoomMessageReceived(): LiveData<Event<Pair<String, Message>>> =
         room.getTextRoomMessageReceived()
 
-    fun getStateChange(): MutableLiveData<State> = room.getStateObservable()
+    fun getStateChange(): LiveData<State> = room.getStateObservable()
 
-    fun getJoinedRoom(): MutableLiveData<Event<RoomUI>> =
+    fun getJoinedRoom(): LiveData<Event<RoomUI>> =
         room.getJoinedRoomObservable()
 
-    fun getJoinedParticipant(): MutableLiveData<Event<Participant>> =
+    fun getJoinedParticipant(): LiveData<Event<Participant>> =
         room.getJoinedParticipant()
 
-    fun getLeavingParticipantId(): MutableLiveData<Pair<Long, String>> =
+    fun getLeavingParticipantId(): LiveData<Pair<Long, String>> =
         room.getLeavingParticipantId()
 
-    fun getSpeakingParticipant(): MutableLiveData<Pair<Participant, String?>> =
+    fun getSpeakingParticipant(): LiveData<Pair<Participant, String?>> =
         room.getParticipantTalking()
 
-    fun getParticipantStreamChanged(): MutableLiveData<Event<Participant>> =
+    fun getParticipantStreamChanged(): LiveData<Event<Participant>> =
         room.getParticipantStreamChanged()
 
     fun getLastRetrievedPage(): Int = mLastRetrievedPage
@@ -382,7 +382,11 @@ class RoomsViewModel @Inject constructor(
         date = getCurrentTimeHHmm(),
         sender = "ADMIN",
         fullMessage = Message(
-            message = MessageContent(type = MessageType.TEXT.type, payload = adminMessageText, null),
+            message = MessageContent(
+                type = MessageType.TEXT.type,
+                payload = adminMessageText,
+                null
+            ),
             recipients = emptyList()
         )
     )
