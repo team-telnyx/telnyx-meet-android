@@ -5,10 +5,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.ParticipantItemBinding
 import com.telnyx.meet.ui.RoomFragment
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
-import kotlinx.android.synthetic.main.participant_item.view.*
 import timber.log.Timber
 
 class ParticipantsAdapter : RecyclerView.Adapter<ParticipantsAdapter.ParticipantHolder>() {
@@ -43,26 +43,29 @@ class ParticipantsAdapter : RecyclerView.Adapter<ParticipantsAdapter.Participant
     }
 
     class ParticipantHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val binding = ParticipantItemBinding.bind(itemView)
         fun bind(model: Participant) {
-            itemView.participantName_tv.text =
-                model.externalUsername
+            binding.apply {
+                 participantNameTv.text =
+                    model.externalUsername
 
-            if (model.isTalking == "talking") {
-                itemView.isSpeakingIcon_id.visibility = View.VISIBLE
-            } else {
-                itemView.isSpeakingIcon_id.visibility = View.INVISIBLE
-            }
+                if (model.isTalking == "talking") {
+                    isSpeakingIconId.visibility = View.VISIBLE
+                } else {
+                    isSpeakingIconId.visibility = View.INVISIBLE
+                }
 
-            if (model.streams.find { it.streamKey == RoomFragment.RoomFragmentConstants.SELF_STREAM_KEY }?.audioEnabled == StreamStatus.ENABLED) {
-                itemView.isMutedIcon_id.setImageResource(R.drawable.ic_mic)
-            } else {
-                itemView.isMutedIcon_id.setImageResource(R.drawable.ic_mic_off)
-            }
+                if (model.streams.find { it.streamKey == RoomFragment.RoomFragmentConstants.SELF_STREAM_KEY }?.audioEnabled == StreamStatus.ENABLED) {
+                    isMutedIconId.setImageResource(R.drawable.ic_mic)
+                } else {
+                    isMutedIconId.setImageResource(R.drawable.ic_mic_off)
+                }
 
-            if (model.streams.find { it.streamKey == "self" }?.videoEnabled == StreamStatus.ENABLED) {
-                itemView.isVideoIcon_id.setImageResource(R.drawable.ic_camera)
-            } else {
-                itemView.isVideoIcon_id.setImageResource(R.drawable.ic_camera_off)
+                if (model.streams.find { it.streamKey == "self" }?.videoEnabled == StreamStatus.ENABLED) {
+                    isVideoIconId.setImageResource(R.drawable.ic_camera)
+                } else {
+                    isVideoIconId.setImageResource(R.drawable.ic_camera_off)
+                }
             }
 
             itemView.setOnClickListener {

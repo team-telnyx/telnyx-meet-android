@@ -6,12 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.AdminMessageItemBinding
+import com.telnyx.meet.databinding.RemoteMessageItemBinding
+import com.telnyx.meet.databinding.SelfMessageItemBinding
 import com.telnyx.meet.ui.models.MessageUI
 import com.telnyx.meet.ui.utilities.getTimeHHmm
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
-import kotlinx.android.synthetic.main.admin_message_item.view.*
-import kotlinx.android.synthetic.main.remote_message_item.view.*
-import kotlinx.android.synthetic.main.self_message_item.view.*
 
 class MessageListAdapter(
     context: Context,
@@ -123,46 +123,54 @@ class MessageListAdapter(
 
     class SelfMessageHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(model: MessageUI, recepientNames: List<String?>) {
+            val binding = SelfMessageItemBinding.bind(itemView)
+            binding.apply {
+                val isPrivateMessage = recepientNames.isNotEmpty()
+                val text = model.fullMessage.message.payload
+                val date = model.date
 
-            val isPrivateMessage = !recepientNames.isNullOrEmpty()
-            val text = model.fullMessage.message.payload
-            val date = model.date
-
-            if (isPrivateMessage) {
-                itemView.sendto_chat_self.visibility = View.VISIBLE
-                itemView.sendto_chat_self.text = "Private to $recepientNames"
-            } else {
-                itemView.sendto_chat_self.visibility = View.GONE
+                if (isPrivateMessage) {
+                    sendtoChatSelf.visibility = View.VISIBLE
+                    sendtoChatSelf.text = "Private to $recepientNames"
+                } else {
+                    sendtoChatSelf.visibility = View.GONE
+                }
+                textChatSelf.text = text
+                dateChatSelf.text = getTimeHHmm(date)
             }
-            itemView.text_chat_self.text = text
-            itemView.date_chat_self.text = getTimeHHmm(date)
         }
     }
 
     class RemoteMessageHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(model: MessageUI, recepientNames: List<String?>, sender: String?) {
-
+            val binding = RemoteMessageItemBinding.bind(itemView)
             val isPrivateMessage = !recepientNames.isNullOrEmpty()
             val text = model.fullMessage.message.payload
             val date = model.date
             val senderText = sender ?: model.sender
 
-            if (isPrivateMessage) {
-                itemView.sendfrom_chat_remote.text =
-                    "Private from $senderText to $recepientNames"
-            } else {
-                itemView.sendfrom_chat_remote.text = senderText
+            binding.apply {
+                if (isPrivateMessage) {
+                    sendfromChatRemote.text =
+                        "Private from $senderText to $recepientNames"
+                } else {
+                    sendfromChatRemote.text = senderText
+                }
+                textChatRemote.text = text
+                dateChatRemote.text = getTimeHHmm(date)
             }
-            itemView.text_chat_remote.text = text
-            itemView.date_chat_remote.text = getTimeHHmm(date)
+
         }
     }
 
     class AdminMessageHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(model: MessageUI) {
-            val text = model.fullMessage.message.payload
-            itemView.text_chat_admin.text = text
-            itemView.date_chat_admin.text = getTimeHHmm(model.date)
+            val binding = AdminMessageItemBinding.bind(itemView)
+            binding.apply {
+                val text = model.fullMessage.message.payload
+                textChatAdmin.text = text
+                dateChatAdmin.text = getTimeHHmm(model.date)
+            }
         }
     }
 }

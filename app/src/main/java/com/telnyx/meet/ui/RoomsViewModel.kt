@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
+import android.os.Build
 import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -251,13 +252,28 @@ class RoomsViewModel @Inject constructor(
     }
 
     fun checkPermissions(context: Context) {
-        Dexter.withContext(context)
-            .withPermissions(
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            listOf(
                 Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.INTERNET,
                 Manifest.permission.CAMERA,
+                Manifest.permission.READ_MEDIA_AUDIO,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.INTERNET,
+
+                )
+        } else {
+            listOf(
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.CAMERA,
+                Manifest.permission.INTERNET,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE
+            )
+        }
+        Dexter.withContext(context)
+            .withPermissions(
+               permissions
             )
             .withListener(object : MultiplePermissionsListener {
                 override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
@@ -270,6 +286,7 @@ class RoomsViewModel @Inject constructor(
                             Toast.LENGTH_LONG
                         ).show()
                         permissionRequest.value = false
+                        Timber.e("missing ${report.deniedPermissionResponses.joinToString { it.permissionName }}")
                     }
                 }
 

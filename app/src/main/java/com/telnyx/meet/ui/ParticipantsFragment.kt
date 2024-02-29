@@ -7,23 +7,25 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.telnyx.meet.BaseFragment
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.ParticipantsFragmentBinding
 import com.telnyx.meet.ui.adapters.ParticipantsAdapter
-import kotlinx.android.synthetic.main.participants_fragment.*
 
-class ParticipantsFragment : Fragment() {
+class ParticipantsFragment : BaseFragment<ParticipantsFragmentBinding>() {
 
     val roomsViewModel: RoomsViewModel by activityViewModels()
 
     private var participantsAdapter = ParticipantsAdapter()
+    override val layoutId: Int
+        get() = R.layout.participants_fragment
 
-    override fun onCreateView(
+    override fun inflate(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.participants_fragment, container, false)
+        savedInstanceState: Bundle?
+    ): ParticipantsFragmentBinding {
+        return ParticipantsFragmentBinding.inflate(inflater, container, false)
     }
 
     private fun setObservers() {
@@ -69,8 +71,11 @@ class ParticipantsFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        participantRecycler.adapter = participantsAdapter
-        val linearLayoutManager = LinearLayoutManager(context)
-        participantRecycler.layoutManager = linearLayoutManager
+        binding.apply {
+            participantRecycler.adapter = participantsAdapter
+            val linearLayoutManager = LinearLayoutManager(context)
+            participantRecycler.layoutManager = linearLayoutManager
+        }
+
     }
 }

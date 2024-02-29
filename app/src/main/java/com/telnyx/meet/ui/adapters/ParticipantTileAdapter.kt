@@ -5,9 +5,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.ParticipantTileItemBinding
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
-import kotlinx.android.synthetic.main.participant_tile_item.view.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Main
 import org.webrtc.SurfaceViewRenderer
@@ -42,10 +42,10 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
         super.onViewDetachedFromWindow(holder)
         viewHolderMap[holder]?.let {
             Timber.tag("ParticipantTileAdapter").d(
-                "detach remove surface: video: $it surface ${holder.itemView.participant_tile_surface}"
+                "detach remove surface: video: $it surface ${holder.binding.participantTileSurface}"
             )
-            it.removeSink(holder.itemView.participant_tile_surface)
-            holder.itemView.participant_tile_surface.release()
+            it.removeSink(holder.binding.participantTileSurface)
+            holder.binding.participantTileSurface.release()
             viewHolderMap.remove(holder)
         }
     }
@@ -150,67 +150,70 @@ class ParticipantTileAdapter(private val participantTileListener: ParticipantTil
 
     class ParticipantTileHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val holder = this
-
+        val binding = ParticipantTileItemBinding.bind(itemView)
         fun bind(
             model: Participant,
             participantTileListener: ParticipantTileListener,
             viewHolderMap: MutableMap<ParticipantTileHolder, VideoTrack?>
         ) {
-            Timber.tag("ParticipantTileAdapter").d("onBind() isSelf: ${model.isSelf}")
-            itemView.participant_tile_id.text =
-                model.participantId.substring(0, 5)
-            itemView.participant_tile_name.text = model.externalUsername.toString()
+            binding.apply {
+                Timber.tag("ParticipantTileAdapter").d("onBind() isSelf: ${model.isSelf}")
+                participantTileId.text =
+                    model.participantId.substring(0, 5)
+                participantTileName.text = model.externalUsername.toString()
 
-            Timber.tag("ParticipantTileAdapter")
-                .d("onBind() talkingUpdate ${model.externalUsername} ${model.isTalking}")
+                Timber.tag("ParticipantTileAdapter")
+                    .d("onBind() talkingUpdate ${model.externalUsername} ${model.isTalking}")
 
-            if (model.isAudioCensored == true) {
-                itemView.isSpeakingIcon_id.setImageResource(R.drawable.ic_speaker_attendee_off)
-                itemView.isSpeakingIcon_id.visibility = View.VISIBLE
-            } else {
-                itemView.isSpeakingIcon_id.setImageResource(R.drawable.ic_campaign_white_dp)
-                if (model.isTalking == "talking") {
-                    itemView.isSpeakingIcon_id.visibility = View.VISIBLE
+                if (model.isAudioCensored == true) {
+                    isSpeakingIconId.setImageResource(R.drawable.ic_speaker_attendee_off)
+                    isSpeakingIconId.visibility = View.VISIBLE
                 } else {
-                    itemView.isSpeakingIcon_id.visibility = View.INVISIBLE
+                    isSpeakingIconId.setImageResource(R.drawable.ic_campaign_white_dp)
+                    if (model.isTalking == "talking") {
+                        isSpeakingIconId.visibility = View.VISIBLE
+                    } else {
+                        isSpeakingIconId.visibility = View.INVISIBLE
+                    }
+                }
+                model.connectionQualityLevel?.let {
+                    networkQualityIcon.visibility = View.VISIBLE
+                    networkQualityIcon.text = it.icon
+                } ?: run {
+                    networkQualityIcon.visibility = View.GONE
                 }
             }
-            model.connectionQualityLevel?.let {
-                itemView.network_quality_icon.visibility = View.VISIBLE
-                itemView.network_quality_icon.text = it.icon
-            } ?: run {
-                itemView.network_quality_icon.visibility = View.GONE
-            }
 
-            if (model.isSelf) participantTileListener.notifyTileSelfSurfaceId(itemView.participant_tile_surface)
+
+            if (model.isSelf) participantTileListener.notifyTileSelfSurfaceId(binding.participantTileSurface)
 
             // TODO review this logic: will only subscribe to audio, if video is enabled as well
             when (model.streams.find { it.streamKey == "self" }?.videoEnabled) {
                 StreamStatus.ENABLED -> {
                     Timber.tag("ParticipantTileAdapter").d("onBind() STARTED")
                     participantTileListener.subscribeTileToStream(model.participantId, "self")
-                    itemView.participant_tile_surface.visibility = View.VISIBLE
-                    itemView.participant_tile_place_holder.visibility = View.GONE
+                    binding.participantTileSurface.visibility = View.VISIBLE
+                    binding.participantTilePlaceHolder.visibility = View.GONE
                     participantTileListener.notifyTileSurfaceId(
-                        itemView.participant_tile_surface,
+                        binding.participantTileSurface,
                         model.participantId,
                         "self"
                     )
                     model.streams.find { it.streamKey == "self" }?.videoTrack?.let {
                         if (viewHolderMap[holder] != it) {
                             // Updates only if previous register differs from what we need
-                            viewHolderMap[holder]?.removeSink(holder.itemView.participant_tile_surface)
-                            holder.itemView.participant_tile_surface.release()
+                            viewHolderMap[holder]?.removeSink(holder.binding.participantTileSurface)
+                            holder.binding.participantTileSurface.release()
                             viewHolderMap[holder] = it
-                            it.addSink(itemView.participant_tile_surface)
+                            it.addSink(binding.participantTileSurface)
                             it.setEnabled(true)
                         }
                     }
                 }
                 else -> {
                     Timber.tag("ParticipantTileAdapter").d("onBind() PAUSED")
-                    itemView.participant_tile_surface.visibility = View.GONE
-                    itemView.participant_tile_place_holder.visibility = View.VISIBLE
+                    binding.participantTileSurface.visibility = View.GONE
+                    binding.participantTilePlaceHolder.visibility = View.VISIBLE
                     participantTileListener.unsubscribeTileToStream(model.participantId, "self")
                 }
             }

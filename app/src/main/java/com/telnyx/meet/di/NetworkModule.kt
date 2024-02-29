@@ -7,12 +7,14 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -59,7 +61,12 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun providesRoomService(client: OkHttpClient, @BaseUrl baseUrl: String): RoomService {
+    fun providesRoomService(client: OkHttpClient): RoomService {
+        val baseUrl: HttpUrl = HttpUrl.Builder()
+            .scheme("https")
+            .host("api.telnyx.com")
+            .encodedPath("/v2/")
+            .build()
         return Retrofit.Builder()
             .client(client)
             .baseUrl(baseUrl)

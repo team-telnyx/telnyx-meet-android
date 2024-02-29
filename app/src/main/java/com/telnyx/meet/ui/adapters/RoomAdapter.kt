@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.telnyx.meet.R
 import com.telnyx.meet.data.model.RoomDetails
-import kotlinx.android.synthetic.main.room_item.view.*
+import com.telnyx.meet.databinding.RoomItemBinding
 
 interface BindableAdapter<T> {
     fun setData(data: T)
@@ -82,14 +82,18 @@ class RoomAdapter(private val clickListener: ClickListener) :
     }
 
     class RoomHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+
+        val binding = RoomItemBinding.bind(itemView)
         fun bind(model: RoomDetails, clickListener: ClickListener) {
             if (model.unique_name == null) {
                 model.unique_name = "Unknown name"
             }
-            itemView.room_name.text = model.unique_name
-            itemView.room_id.text = model.id
-            itemView.setOnClickListener {
-                clickListener.onItemClicked(model.id, model.unique_name)
+            binding.apply {
+                roomName.text = model.unique_name
+                roomId.text = model.id
+                itemView.setOnClickListener {
+                    clickListener.onItemClicked(model.id, model.unique_name)
+                }
             }
         }
     }

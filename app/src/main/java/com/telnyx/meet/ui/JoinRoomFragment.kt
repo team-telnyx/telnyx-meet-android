@@ -1,7 +1,9 @@
 package com.telnyx.meet.ui
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.camera.core.CameraSelector
@@ -12,23 +14,33 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.activityViewModels
 import com.google.common.util.concurrent.ListenableFuture
 import com.telnyx.meet.BaseFragment
+import com.telnyx.meet.BuildConfig
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.RoomJoinFragmentBinding
 import com.telnyx.meet.navigator.Navigator
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.android.synthetic.main.room_join_fragment.*
 import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class JoinRoomFragment @Inject constructor(
     val navigator: Navigator
-) : BaseFragment() {
+) : BaseFragment<RoomJoinFragmentBinding>() {
+
     private var participantName: String = ""
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>? = null
     private val roomsViewModel: RoomsViewModel by activityViewModels()
     private var permissionsGranted = false
     override val layoutId: Int = R.layout.room_join_fragment
+    override fun inflate(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): RoomJoinFragmentBinding {
+        return RoomJoinFragmentBinding.inflate(inflater, container, false)
+    }
+
     private var toggledVideo = false
     private var toggledAudio = false
 
@@ -49,46 +61,50 @@ class JoinRoomFragment @Inject constructor(
         roomsViewModel.permissionRequest.observe(this.viewLifecycleOwner) { permission ->
             permissionsGranted = permission
         }
+        binding.roomUuidEt.setText(BuildConfig.DEFAULT_ROOM)
         roomsViewModel.tokenCreationErrorObservable().postValue(false)
-        buttonJoinRoom.setOnClickListener {
-            if (permissionsGranted) {
-                navigateToRoomCreate(room_uuid_et.text.toString())
-            } else {
-                roomsViewModel.checkPermissions(requireActivity())
+        binding.apply {
+            buttonJoinRoom.setOnClickListener {
+                if (permissionsGranted) {
+                    navigateToRoomCreate(binding.roomUuidEt.text.toString())
+                } else {
+                    roomsViewModel.checkPermissions(requireActivity())
+                }
             }
-        }
-        see_available_rooms_text.setOnClickListener {
-            navigateToRoomList()
+            binding.seeAvailableRoomsText.setOnClickListener {
+                navigateToRoomList()
+            }
+
+            toggleCameraButton.setOnClickListener {
+                toggledVideo = if (!toggledVideo) {
+                    toggleCameraButton.setImageResource(R.drawable.ic_camera_off)
+                    startCamera()
+                    roomsViewModel.cameraInitialState = MediaOnStart.ENABLED
+                    true
+                } else {
+                    toggleCameraButton.setImageResource(R.drawable.ic_camera)
+                    stopCamera()
+                    roomsViewModel.cameraInitialState = MediaOnStart.DISABLED
+                    false
+                }
+            }
+            toggleAudioButton.setOnClickListener {
+                toggledAudio = if (!toggledAudio) {
+                    toggleAudioButton.setImageResource(R.drawable.ic_mic_off)
+                    roomsViewModel.micInitialState = MediaOnStart.ENABLED
+                    true
+                } else {
+                    toggleAudioButton.setImageResource(R.drawable.ic_mic)
+                    roomsViewModel.micInitialState = MediaOnStart.DISABLED
+                    false
+                }
+            }
+            participantName = getString(R.string.dummy_android_participant_name)
+            participantNameEt.addTextChangedListener {
+                participantName = it.toString()
+            }
         }
 
-        toggleCameraButton.setOnClickListener {
-            toggledVideo = if (!toggledVideo) {
-                toggleCameraButton.setImageResource(R.drawable.ic_camera_off)
-                startCamera()
-                roomsViewModel.cameraInitialState = MediaOnStart.ENABLED
-                true
-            } else {
-                toggleCameraButton.setImageResource(R.drawable.ic_camera)
-                stopCamera()
-                roomsViewModel.cameraInitialState = MediaOnStart.DISABLED
-                false
-            }
-        }
-        toggleAudioButton.setOnClickListener {
-            toggledAudio = if (!toggledAudio) {
-                toggleAudioButton.setImageResource(R.drawable.ic_mic_off)
-                roomsViewModel.micInitialState = MediaOnStart.ENABLED
-                true
-            } else {
-                toggleAudioButton.setImageResource(R.drawable.ic_mic)
-                roomsViewModel.micInitialState = MediaOnStart.DISABLED
-                false
-            }
-        }
-        participantName = getString(R.string.dummy_android_participant_name)
-        participant_name_et.addTextChangedListener {
-            participantName = it.toString()
-        }
     }
 
     private fun navigateToRoomList() {
@@ -99,7 +115,7 @@ class JoinRoomFragment @Inject constructor(
             action.participantName = participantName
             navigator.navController.navigate(action)
         } else {
-            participant_name_it.error = getString(R.string.provide_participant_name_error)
+           binding.participantNameIt.error = getString(R.string.provide_participant_name_error)
         }
     }
 
@@ -118,7 +134,7 @@ class JoinRoomFragment @Inject constructor(
                     .show()
             }
         } else {
-            participant_name_it.error = getString(R.string.provide_participant_name_error)
+            binding.participantNameIt.error = getString(R.string.provide_participant_name_error)
         }
     }
 
@@ -136,7 +152,7 @@ class JoinRoomFragment @Inject constructor(
                     val preview = Preview.Builder()
                         .build()
                         .also {
-                            it.setSurfaceProvider(previewLoginView.surfaceProvider)
+                            it.setSurfaceProvider(binding.previewLoginView.surfaceProvider)
                         }
 
                     // Select back camera as a default
@@ -155,14 +171,14 @@ class JoinRoomFragment @Inject constructor(
                     }
                 }, ContextCompat.getMainExecutor(context))
                 }
-                previewPlaceHolder.visibility = View.GONE
-                previewLoginView.visibility = View.VISIBLE
+                binding.previewPlaceHolder.visibility = View.GONE
+                binding.previewLoginView.visibility = View.VISIBLE
             }
         }
 
         private fun stopCamera() {
-            previewPlaceHolder.visibility = View.VISIBLE
-            previewLoginView.visibility = View.GONE
+            binding.previewPlaceHolder.visibility = View.VISIBLE
+            binding.previewLoginView.visibility = View.GONE
             cameraProvider?.unbindAll()
         }
     }

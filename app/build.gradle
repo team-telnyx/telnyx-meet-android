@@ -1,7 +1,6 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'kotlin-android-extensions'
     id 'kotlin-kapt'
     id 'dagger.hilt.android.plugin'
     id 'androidx.navigation.safeargs'
@@ -12,13 +11,17 @@ def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
 
 android {
-    compileSdkVersion 32
+    compileSdkVersion 34
     buildToolsVersion "30.0.3"
+
+    buildFeatures {
+        viewBinding = true
+    }
 
     defaultConfig {
         applicationId "com.telnyx.meet"
         minSdkVersion 23
-        targetSdkVersion 32
+        targetSdkVersion 34
         versionCode 7
         versionName "7.0"
 
@@ -39,6 +42,7 @@ android {
 
         release {
             buildConfigField 'String', "API_KEY", properties.getProperty('API_KEY', '"xxxxx"')
+            buildConfigField 'String', "DEFAULT_ROOM", properties.getProperty('ROOM_ID', '"xxxxx"')
             resValue('string', "api_key", properties.getProperty('API_KEY', '"xxxxx"'))
 
             testCoverageEnabled true
@@ -49,6 +53,7 @@ android {
         debug {
             buildConfigField 'String', "API_KEY", properties.getProperty('API_KEY', '"xxxxx"')
             resValue('string', "api_key", properties.getProperty('API_KEY', '"xxxxx"'))
+            buildConfigField 'String', "DEFAULT_ROOM", properties.getProperty('ROOM_ID', '"xxxxx"')
 
             testCoverageEnabled true
             minifyEnabled false
@@ -162,7 +167,6 @@ dependencies {
     androidTestImplementation deps.testingAcceptance.jupiter
     implementation "androidx.core:core-ktx:+"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
 }
 repositories {
     mavenCentral()

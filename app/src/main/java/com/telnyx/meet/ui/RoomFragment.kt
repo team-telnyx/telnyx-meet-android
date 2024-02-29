@@ -21,6 +21,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.GsonBuilder
 import com.telnyx.meet.BaseFragment
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.RoomFragmentBinding
 import com.telnyx.meet.navigator.Navigator
 import com.telnyx.meet.ui.adapters.ParticipantTileAdapter
 import com.telnyx.meet.ui.adapters.ParticipantTileListener
@@ -36,18 +37,22 @@ import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamConfig
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.android.synthetic.main.room_fragment.*
 import kotlinx.coroutines.*
 import org.webrtc.RTCStatsReport
 import org.webrtc.SurfaceViewRenderer
 import timber.log.Timber
+import java.lang.IllegalArgumentException
 import java.util.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class RoomFragment @Inject constructor(
     val navigator: Navigator,
-) : BaseFragment(), ParticipantTileListener {
+) : BaseFragment<RoomFragmentBinding>(), ParticipantTileListener {
+
+    private var participantTileRecycler: RecyclerView? = null
+    private var mainSurface: SurfaceViewRenderer? = null
+
 
     companion object RoomFragmentConstants {
         private const val FULL_PARTICIPANT_LIST = 8
@@ -109,6 +114,13 @@ class RoomFragment @Inject constructor(
     private var publishConfigHelper: PublishConfigHelper? = null
 
     override val layoutId: Int = R.layout.room_fragment
+    override fun inflate(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): RoomFragmentBinding {
+        return RoomFragmentBinding.inflate(inflater, container, false)
+    }
 
     private val participantAdapter: ParticipantTileAdapter by lazy {
         val adapter = ParticipantTileAdapter(this)
@@ -119,18 +131,7 @@ class RoomFragment @Inject constructor(
     private val args: com.telnyx.meet.ui.RoomFragmentArgs by navArgs()
 
     private var fragmentView: View? = null
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View? {
-        if (fragmentView == null)
-            fragmentView = inflater.inflate(
-                R.layout.room_fragment,
-                container, false
-            )
-        return fragmentView
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -422,8 +423,10 @@ class RoomFragment @Inject constructor(
         currentViewMode = ViewMode.FULL_PARTICIPANTS
         participantAdapter.setMaxParticipants(FULL_PARTICIPANT_LIST)
         setRecyclerLayoutParams(ViewMode.FULL_PARTICIPANTS)
-        mainCardSurface.visibility = View.GONE
-        bzoneLine.setGuidelinePercent(0.05f)
+        binding.apply {
+            mainCardSurface.visibility = View.GONE
+            bzoneLine.setGuidelinePercent(0.05f)
+        }
     }
 
     private fun adaptUIToMainView() {
@@ -431,8 +434,10 @@ class RoomFragment @Inject constructor(
         currentViewMode = ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS
         participantAdapter.setMaxParticipants(SHARING_PARTICIPANT_LIST)
         setRecyclerLayoutParams(ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS)
-        mainCardSurface.visibility = View.VISIBLE
-        bzoneLine.setGuidelinePercent(0.5f)
+        binding.apply {
+            mainCardSurface.visibility = View.VISIBLE
+            bzoneLine.setGuidelinePercent(0.5f)
+        }
     }
 
     private fun adaptUIToFullShareMode() {
@@ -446,38 +451,44 @@ class RoomFragment @Inject constructor(
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        room_id_tv.text = args.roomId
 
-        (activity as ManageRoomActivity).setActionBarTitle(args.roomName)
+        mainSurface = binding.mainSurface
+        participantTileRecycler = binding.participantTileRecycler
+        binding.apply {
+            roomIdTv.text = args.roomId
 
-        fabExtraParticipant.setOnClickListener {
-            val action =
-                com.telnyx.meet.ui.RoomFragmentDirections.actionRoomFragmentToRoomParticipantsFragment()
-            navigator.navController.navigate(action)
-        }
+            (activity as ManageRoomActivity).setActionBarTitle(args.roomName)
 
-        mainSurface.setOnClickListener {
-            mSharingParticipant?.participantId?.let { participantId ->
-                mStatsParticipant = StatsParticipant(
-                    participantId = participantId,
-                    isSelf = false,
-                    isPresentation = true
-                )
-                startStatsJob(participantId, "presentation", StatsSource.REMOTE_VIDEO)
+            fabExtraParticipant.setOnClickListener {
+                val action =
+                    com.telnyx.meet.ui.RoomFragmentDirections.actionRoomFragmentToRoomParticipantsFragment()
+                navigator.navController.navigate(action)
+            }
+
+            mainSurface.setOnClickListener {
+                mSharingParticipant?.participantId?.let { participantId ->
+                    mStatsParticipant = StatsParticipant(
+                        participantId = participantId,
+                        isSelf = false,
+                        isPresentation = true
+                    )
+                    startStatsJob(participantId, "presentation", StatsSource.REMOTE_VIDEO)
+                }
+            }
+
+            fullScreenButton.setOnClickListener {
+                isFullShare = if (!isFullShare) {
+                    adaptUIToFullShareMode()
+                    ViewMode.MAIN_SHARE_VIEW_ONLY
+                    true
+                } else {
+                    adaptUIToMainView()
+                    ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS
+                    false
+                }
             }
         }
 
-        fullScreenButton.setOnClickListener {
-            isFullShare = if (!isFullShare) {
-                adaptUIToFullShareMode()
-                ViewMode.MAIN_SHARE_VIEW_ONLY
-                true
-            } else {
-                adaptUIToMainView()
-                ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS
-                false
-            }
-        }
 
         setupRecyclerView()
         setObservers()
@@ -547,11 +558,14 @@ class RoomFragment @Inject constructor(
 
     private fun setupRecyclerView() {
         setRecyclerLayoutParams(currentViewMode)
-        participantTileRecycler.adapter = participantAdapter
-        val animator = participantTileRecycler.itemAnimator
-        if (animator is SimpleItemAnimator) {
-            animator.supportsChangeAnimations = false
+        binding.apply {
+            participantTileRecycler.adapter = participantAdapter
+            val animator = participantTileRecycler.itemAnimator
+            if (animator is SimpleItemAnimator) {
+                animator.supportsChangeAnimations = false
+            }
         }
+
     }
 
     private fun setRecyclerLayoutParams(viewMode: ViewMode) {
@@ -559,7 +573,7 @@ class RoomFragment @Inject constructor(
         context?.let { context ->
             when (viewMode) {
                 ViewMode.FULL_PARTICIPANTS -> {
-                    participantTileRecycler.layoutManager =
+                    binding.participantTileRecycler.layoutManager =
                         object : WrapGridLayoutManager(context, 2) {
                             override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
                                 lp.height = (height / 4.2).toInt()
@@ -569,7 +583,7 @@ class RoomFragment @Inject constructor(
                         }
                 }
                 ViewMode.MAIN_SHARE_VIEW_AND_PARTICIPANTS -> {
-                    participantTileRecycler.layoutManager =
+                    binding.participantTileRecycler.layoutManager =
                         object : WrapGridLayoutManager(context, 2) {
                             override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
                                 lp.height = (height / 2.1).toInt()
@@ -579,7 +593,7 @@ class RoomFragment @Inject constructor(
                         }
                 }
                 ViewMode.MAIN_SHARE_VIEW_ONLY -> {
-                    participantTileRecycler.layoutManager =
+                   binding. participantTileRecycler.layoutManager =
                         object : WrapGridLayoutManager(context, 1) {
                             override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
                                 lp.height = height
@@ -597,23 +611,32 @@ class RoomFragment @Inject constructor(
         while (queueIterator.hasNext()) {
             val state = queueIterator.next()
             Timber.tag("SDKState").d("State: $state")
-            when (state.status) {
-                Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
-                Status.DISCONNECTED.status -> {
-                    roomProgressBar.visibility = View.GONE
-                    navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+            binding.apply {
+                when (state.status) {
+                    Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
+                    Status.DISCONNECTED.status -> {
+                        roomProgressBar.visibility = View.GONE
+                        navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+                    }
+                }
+                when (state.status) {
+                    Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
+                    Status.DISCONNECTED.status -> {
+                        roomProgressBar.visibility = View.GONE
+                        try {
+                            if (navigator.navController.currentDestination?.id != R.id.joinRoomFragment) {
+                                navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
+                            }
+                        }catch (e: IllegalArgumentException){
+                            e.printStackTrace()
+                        }
+                    }
+                }
+                when (state.action) {
+                    StateAction.NETWORK_METRICS_REPORT.action -> participantAdapter.initNotifyDataSetJob()
                 }
             }
-            when (state.status) {
-                Status.DISCONNECTING.status -> roomProgressBar.visibility = View.VISIBLE
-                Status.DISCONNECTED.status -> {
-                    roomProgressBar.visibility = View.GONE
-                    navigator.navigate(R.id.roomFragmentToJoinRoomFragment)
-                }
-            }
-            when (state.action) {
-                StateAction.NETWORK_METRICS_REPORT.action -> participantAdapter.initNotifyDataSetJob()
-            }
+
             queueIterator.remove()
         }
         /* stateQueue.forEach { state ->
@@ -799,11 +822,11 @@ class RoomFragment @Inject constructor(
             if (currentViewMode == ViewMode.FULL_PARTICIPANTS) {
                 adaptUIToMainView()
             }
-            presentationStream.videoTrack?.addSink(mainSurface)
+            presentationStream.videoTrack?.addSink(binding.mainSurface)
             presentationStream.videoTrack?.setEnabled(true)
             roomsViewModel.setParticipantSurface(
                 participantSharing.participantId,
-                mainSurface,
+                binding.mainSurface,
                 "presentation"
             )
         }
@@ -1097,12 +1120,15 @@ class RoomFragment @Inject constructor(
     }
 
     override fun notifyExtraParticipants(extraParticipants: Int) {
-        if (extraParticipants > 0) {
-            "$extraParticipants more".also { fabExtraParticipant.text = it }
-            fabExtraParticipant.visibility = View.VISIBLE
-        } else {
-            fabExtraParticipant.visibility = View.GONE
+        binding.apply {
+            if (extraParticipants > 0) {
+                "$extraParticipants more".also { fabExtraParticipant.text = it }
+                fabExtraParticipant.visibility = View.VISIBLE
+            } else {
+                fabExtraParticipant.visibility = View.GONE
+            }
         }
+
     }
 
     override fun onStop() {
@@ -1125,8 +1151,9 @@ class RoomFragment @Inject constructor(
         super.onDestroyView()
         mSharingParticipant?.let {
             it.streams.find { it.streamKey == "presentation" }?.videoTrack?.removeSink(mainSurface)
-            mainSurface.release()
+            mainSurface?.release()
         }
-        participantTileRecycler.adapter = null
+        participantTileRecycler?.adapter = null
+
     }
 }

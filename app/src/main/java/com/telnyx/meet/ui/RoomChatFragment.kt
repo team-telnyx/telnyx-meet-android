@@ -2,11 +2,14 @@ package com.telnyx.meet.ui
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.telnyx.meet.BaseFragment
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.ChatDialogLayoutBinding
 import com.telnyx.meet.navigator.Navigator
 import com.telnyx.meet.ui.adapters.MessageListAdapter
 import com.telnyx.meet.ui.models.MessageUI
@@ -17,60 +20,68 @@ import com.telnyx.video.sdk.webSocket.model.ui.Message
 import com.telnyx.video.sdk.webSocket.model.ui.MessageContent
 import com.telnyx.video.sdk.webSocket.model.ui.MessageType
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.android.synthetic.main.chat_dialog_layout.*
 import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class RoomChatFragment @Inject constructor(
     val navigator: Navigator
-) : BaseFragment() {
+) : BaseFragment<ChatDialogLayoutBinding>() {
 
     val roomsViewModel: RoomsViewModel by activityViewModels()
     private var participantsInChat = mutableListOf<SelectedParticipant>()
 
     override val layoutId: Int = R.layout.chat_dialog_layout
+    override fun inflate(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): ChatDialogLayoutBinding {
+        return ChatDialogLayoutBinding.inflate(inflater, container, false)
+    }
 
     private var roomChatAdapter: MessageListAdapter? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        chat_send_btn.setOnClickListener {
+        binding.apply {
+            chatSendBtn.setOnClickListener {
+                sendUserMessage()
+                chatEditText.text.clear()
+                chatEditText.clearFocus()
+                hideKeyboard()
+            }
 
-            sendUserMessage()
-            chat_edit_text.text.clear()
-            chat_edit_text.clearFocus()
-            hideKeyboard()
+            selectParticipantsButton.setOnClickListener {
+                val builder = AlertDialog.Builder(context)
+                val namesArray =
+                    participantsInChat.map { it.participant.externalUsername }.toTypedArray()
+                val selectedArray = participantsInChat.map { it.selected }.toBooleanArray()
+
+                builder.setMultiChoiceItems(namesArray, selectedArray) { dialog, which, isChecked ->
+                    // Update the current focused item's checked status
+                    selectedArray[which] = isChecked
+                }
+                builder.setPositiveButton("OK") { _, _ ->
+                    // Do something when click positive button
+                    selectedArray.forEachIndexed { index, isSelected ->
+                        participantsInChat[index].selected = isSelected
+                    }
+                }
+                builder.setNeutralButton("Clear") { _, _ ->
+                    participantsInChat.forEach {
+                        it.selected = false
+                    }
+                }
+                val dialog = builder.create()
+                dialog.show()
+            }
         }
 
-        selectParticipantsButton.setOnClickListener {
-            val builder = AlertDialog.Builder(context)
-            val namesArray =
-                participantsInChat.map { it.participant.externalUsername }.toTypedArray()
-            val selectedArray = participantsInChat.map { it.selected }.toBooleanArray()
-
-            builder.setMultiChoiceItems(namesArray, selectedArray) { dialog, which, isChecked ->
-                // Update the current focused item's checked status
-                selectedArray[which] = isChecked
-            }
-            builder.setPositiveButton("OK") { _, _ ->
-                // Do something when click positive button
-                selectedArray.forEachIndexed { index, isSelected ->
-                    participantsInChat[index].selected = isSelected
-                }
-            }
-            builder.setNeutralButton("Clear") { _, _ ->
-                participantsInChat.forEach {
-                    it.selected = false
-                }
-            }
-            val dialog = builder.create()
-            dialog.show()
-        }
     }
 
     private fun sendUserMessage() {
-        val messageText = chat_edit_text.text.toString()
+        val messageText = binding.chatEditText.text.toString()
         val messageContent = MessageContent(type = MessageType.TEXT.type, messageText, null)
         val usersToArray =
             participantsInChat.filter { it.selected }.map { it.participant.participantId }.toList()
@@ -90,11 +101,11 @@ class RoomChatFragment @Inject constructor(
                 requireContext(),
                 roomsViewModel.getChatHistory()
             )
-        chatRecyclerLayout.adapter = roomChatAdapter
+        binding.chatRecyclerLayout.adapter = roomChatAdapter
         roomChatAdapter?.let {
             val lastPosition = it.itemCount - 1
             if (lastPosition >= 0) {
-                chatRecyclerLayout.layoutManager =
+                binding.chatRecyclerLayout.layoutManager =
                     LinearLayoutManager(context).apply {
                         scrollToPositionWithOffset(lastPosition, 0)
                     }
@@ -146,7 +157,7 @@ class RoomChatFragment @Inject constructor(
                         MessageUI(sender = "SELF", fullMessage = it, getCurrentTimeHHmm())
                     roomChatAdapter?.addMessageToChat(messageUI)
                     roomChatAdapter?.let { adapter ->
-                        chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
+                        binding.chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
                     }
                 }
             }
@@ -170,7 +181,7 @@ class RoomChatFragment @Inject constructor(
                             )
                         roomChatAdapter?.addMessageToChat(messageUI)
                         roomChatAdapter?.let { adapter ->
-                            chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
+                            binding.chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
                         }
                     }
             }
@@ -181,7 +192,7 @@ class RoomChatFragment @Inject constructor(
             roomsViewModel.createAdminMessage(adminMessageText)
         )
         roomChatAdapter?.let { adapter ->
-            chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
+            binding.chatRecyclerLayout.scrollToPosition(adapter.itemCount - 1)
         }
     }
 

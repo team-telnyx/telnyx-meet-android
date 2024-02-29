@@ -9,6 +9,7 @@ import androidx.activity.addCallback
 import androidx.fragment.app.activityViewModels
 import com.telnyx.meet.BaseFragment
 import com.telnyx.meet.R
+import com.telnyx.meet.databinding.SharingFullScreenBinding
 import com.telnyx.meet.navigator.Navigator
 import com.telnyx.meet.ui.utilities.hideSystemUI
 import com.telnyx.meet.ui.utilities.isFullScreenEnabled
@@ -16,8 +17,6 @@ import com.telnyx.meet.ui.utilities.showSystemUI
 import com.telnyx.video.sdk.webSocket.model.ui.Participant
 import com.telnyx.video.sdk.webSocket.model.ui.StreamStatus
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.android.synthetic.main.sharing_full_screen.*
-import kotlinx.android.synthetic.main.sharing_full_screen.view.*
 import kotlinx.coroutines.*
 import org.webrtc.SurfaceViewRenderer
 import timber.log.Timber
@@ -26,7 +25,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class SharingFullScreenFragment @Inject constructor(
     val navigator: Navigator,
-) : BaseFragment() {
+) : BaseFragment<SharingFullScreenBinding>() {
 
     private var participantSharing: Participant? = null
     private var fullScreenSurface: SurfaceViewRenderer? = null
@@ -36,6 +35,13 @@ class SharingFullScreenFragment @Inject constructor(
     val roomsViewModel: RoomsViewModel by activityViewModels()
 
     override val layoutId: Int = R.layout.sharing_full_screen
+    override fun inflate(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): SharingFullScreenBinding {
+        return SharingFullScreenBinding.inflate(inflater, container, false)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -61,7 +67,7 @@ class SharingFullScreenFragment @Inject constructor(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        fullScreenSurface = view.mainFullScreenSurface
+        fullScreenSurface = binding.mainFullScreenSurface
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         startFullScreenEnforcer()
         setObservers()
@@ -70,7 +76,7 @@ class SharingFullScreenFragment @Inject constructor(
     override fun onResume() {
         super.onResume()
         Timber.tag("SharingFullFragment")
-            .d("onResume surface: ${view?.mainFullScreenSurface.hashCode()}")
+            .d("onResume surface: ${binding?.mainFullScreenSurface.hashCode()}")
     }
 
     private fun setObservers() {
@@ -85,13 +91,13 @@ class SharingFullScreenFragment @Inject constructor(
                             participantSharing = participant
                             removeSharingSurface()
                             Timber.tag("SharingFullFragment")
-                                .d("addingSurface surface: ${mainFullScreenSurface.hashCode()}")
+                                .d("addingSurface surface: ${binding.mainFullScreenSurface.hashCode()}")
                             roomsViewModel.setParticipantSurface(
                                 participant.participantId,
-                                mainFullScreenSurface,
+                                binding.mainFullScreenSurface,
                                 "presentation"
                             )
-                            sharingTrack.videoTrack?.addSink(mainFullScreenSurface)
+                            sharingTrack.videoTrack?.addSink(binding.mainFullScreenSurface)
                             sharingTrack.videoTrack?.setEnabled(true)
                         }
                     }
