@@ -93,7 +93,7 @@ dependencies {
     // SDK:
     implementation ('com.github.team-telnyx:telnyx-meet-android-sdk:0.3.1@aar'){transitive=true}
 
-    implementation 'commons-codec:commons-codec:1.15'
+    implementation 'commons-codec:commons-codec:1.16.0'
 
     //leak canary
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
